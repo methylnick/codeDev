@@ -1,10 +1,17 @@
 #!/bin/bash
+
+#This runs the freebayes variant calling tool and assumes there is a module for it on the server
+
 ml load freebayes 
 
 for i in `ls sam/*.bam`
 do
 j=`echo $i | sed 's:_markedDups.bam::g' | sed 's:sam/::g'`
 
-freebayes --fasta-reference refFiles/GRCm38.fa ${i} > vcf/${j}.vcf
+freebayes --fasta-reference \
+  refFiles/GRCm38.fa \
+  ${i} > vcf/${j}.vcf
+
 done
+
 mail -s "Freebayes done" nick.wong@monash.edu <<< 'Freebayes Done'

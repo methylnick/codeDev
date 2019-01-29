@@ -1,11 +1,26 @@
 #!/bin/bash
+
+# This script uses picard to sort SAM alignment files
+#.    Mark Diplicates
+#.    Build a BAM index file and emails me when it is done. 
+
 ml load picard/2.9.0 
 
 for i in `ls *.sam`
 do
 j=`echo $i | sed 's:.sam::g'`
-picard SortSam INPUT=${i} OUTPUT=${j}_sorted.bam SORT_ORDER=coordinate
-picard MarkDuplicates INPUT=${j}_sorted.bam OUTPUT=${j}_markedDups.bam METRICS_FILE=${j}_metrics.txt
-picard BuildBamIndex INPUT=${j}_markedDups.bam
+picard SortSam \
+  INPUT=${i} \
+  OUTPUT=${j}_sorted.bam \
+  SORT_ORDER=coordinate
+  
+picard MarkDuplicates \
+  INPUT=${j}_sorted.bam \
+  OUTPUT=${j}_markedDups.bam \
+  METRICS_FILE=${j}_metrics.txt
+  
+picard BuildBamIndex \
+  INPUT=${j}_markedDups.bam
 done
+
 mail -S "picard done" nick.wong@monash.edu <<< 'Picard Done'
