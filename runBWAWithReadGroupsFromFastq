@@ -1,0 +1,45 @@
+#!/bin/bash
+
+#load modules specific to system
+ml load bwa
+ml load samtools
+
+#star of the loop, look for files in current directory
+for i in `find . -name "*_R1.fastq.gz"`
+do
+
+#Create file names for entry into BWA
+j=`echo $i | sed 's:./::g'`
+k=`echo $i | sed 's:R1:R2:g'`
+l=`echo $j | sed 's:_R1.fastq.gz::g'`
+
+#Create information from fastq
+#split fastq by : and create variables from them for ReadGroups
+fq=`zcat ${i} | head -1 | awk '{print $1}'`
+IFS=: read ins run flo lan til xps yps <<< $fq
+
+#Output the variables
+#echo $i
+#echo $j
+#echo $k
+#echo $l
+#echo $fq
+#echo ${ins}_${flo}
+#echo $run
+#echo $lan
+#echo $til
+#echo $xps
+#echo $yps
+
+#Running BWA proper, hard coding library and platform
+bwa mem -t 12 \
+  -R "@RG\tID:${ins}.${run}\tPU:${flo}.${lan}\tSM:${l}\tPL:ILLUMINA\tLB:AmpliSeq" \
+  ../refFiles/hg19.fa \
+   $i $k > bamfiles/${l}.sam
+
+#Run Samtools sort too
+samtools sort -T ${l}_temp -o bamfiles/${l}.bam -O BAM -@ 24 bamfiles/${l}.sam
+samtools index bamfiles/${l}.bam
+samtools flagstat bamfiles/${l}.bam > bamfiles/${l}.bam.flagstat
+
+done
