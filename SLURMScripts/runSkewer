@@ -1,0 +1,58 @@
+#!/bin/bash
+# Usage: sbatch slurm-serial-job-script
+# Prepared By: Kai Xi,  Oct 2014
+#              help@massive.org.au
+
+# NOTE: To activate a SLURM option, remove the whitespace between the '#' and 'SBATCH'
+
+# To give your job a name, replace "MyJob" with an appropriate name
+#SBATCH --job-name=skewer
+
+
+# To set a project account for credit charging, 
+#SBATCH --account=bd17
+
+
+# Request CPU resource for a serial job
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=12
+
+# Memory usage (MB)
+#SBATCH --mem-per-cpu=4000
+
+# Set your minimum acceptable walltime, format: day-hours:minutes:seconds
+#SBATCH --time=5-0:00:00
+
+
+# To receive an email when job completes or fails
+#SBATCH --mail-user=nick.wong@monash.edu
+#SBATCH --mail-type=END
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --array=1-50
+
+# Set the file for output (stdout)
+# SBATCH --output=/home/nwong/vh83_scratch/2018-03-27-wgbs-rerun/logs_slurm/bismark-%j-%A-%a.out
+
+# Set the file for error log (stderr)
+# SBATCH --error=/home/nwong/vh83_scratch/2018-03-27-wgbs-rerun/logs_slurm/bismark-%j-%A-%a.err
+
+
+# Use reserved node to run job when a node reservation is made for you already
+# SBATCH --reservation=reservation_name
+
+#SBATCH --partition=comp
+
+# SBATCH --dependency=afterok:2545474
+
+# Command to run a serial job
+module load skewer/20170212
+
+R1=`find ../../mziemann/desire_wgbs -name "*1.fq.gz" | awk -v line=$SLURM_ARRAY_TASK_ID '{if (NR == line) print $0}'`
+R2=`echo $R1 | sed 's:1.fq.gz:2.fq.gz:g'`
+R3=`echo $R1 | sed 's:../../mziemann/desire_wgbs/::g' | sed 's:1.fq.gz::g'`
+
+skewer -t 12 -q 20 $R1 $R2 -o trimmedFastq/${R3}
+
