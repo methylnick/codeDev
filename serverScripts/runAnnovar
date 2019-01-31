@@ -1,0 +1,14 @@
+#!/bin/bash
+
+for i in `ls *.vcf`
+ do 
+  j=`echo $i | sed 's:.vcf::g'`
+  ~/bin/annovar/convert2annovar.pl -format vcf4 $i > $j.avinput
+ done
+
+for i in `ls *.avinput`
+ do
+  j=`echo $i | sed 's:.avinput::g'`
+  ~/bin/annovar/annotate_variation.pl -out $j -build hg19 $i humandb/
+  done
+
