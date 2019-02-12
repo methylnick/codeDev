@@ -1,0 +1,20 @@
+#!/bin/bash
+
+mkdir vcfs
+REF=/mnt/cephfs/scratch/nick.wong/david.curtis/homebrew/refFiles
+
+for i in `find bwa-align -name "*markedDups.bam"`
+do
+j=`echo $i | sed 's:bwa-align/::g'`
+l=`echo $j | sed 's:.markedDups.bam::g'`
+#echo $i
+#echo $j
+#echo $k
+#echo $l
+~/bin/gatk-4.0.12.0/gatk HaplotypeCaller   \
+  -I ${i}  \
+  -O vcfs/${l}.g.vcf  \
+  -R ${REF}/hg19.fa  \
+  -ERC GVCF \
+  --dbsnp ${REF}/dbsnp_138.hg19.vcf
+done
