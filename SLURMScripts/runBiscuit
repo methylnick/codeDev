@@ -31,6 +31,7 @@
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-type=BEGIN
 
+#For arrays set the number of array
 #SBATCH --array=1-50
 
 # Set the file for output (stdout)
@@ -43,8 +44,10 @@
 # Use reserved node to run job when a node reservation is made for you already
 # SBATCH --reservation=reservation_name
 
+#Set partition if necessary
 #SBATCH --partition=comp
 
+#Run after a job
 # SBATCH --dependency=afterok:7651852
 
 # Command to run a serial job
