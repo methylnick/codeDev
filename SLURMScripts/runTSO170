@@ -1,0 +1,44 @@
+#!/bin/bash
+# Usage: sbatch slurm-serial-job-script
+# Author Nick Wong, Monash Bioinformatics Platform
+#     nick.wong@monash.edu
+
+# NOTE: To activate a SLURM option, remove the whitespace between the '#' and 'SBATCH'
+
+# To give your job a name, replace "MyJob" with an appropriate name
+#SBATCH --job-name=tso170
+
+
+# To set a project account for credit charging, 
+#SBATCH --account=mv50
+
+
+# Request CPU resource for a serial job
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=24
+#SBATCH --profile=task
+
+# Memory usage (MB)
+#SBATCH --mem-per-cpu=4000
+
+# Set your minimum acceptable walltime, format: day-hours:minutes:seconds
+#SBATCH --time=1-0:00:00
+# SBATCH --partition=short
+
+# To receive an email when job completes or fails
+#SBATCH --mail-user=nick.wong@monash.edu
+#SBATCH --mail-type=END
+#SBATCH --mail-type=FAIL
+
+#SBATCH --partition=comp
+
+# Command to run a serial job
+module load singularity/3.2.1
+
+export RESOURCE=/usr/local/src/TSO/TSO170/genomes
+
+#Specify binding points for singularity instance
+export SINGULARITY_BINDPATH="/home/nwong/mv50_scratch/TSO500_run2/NextSeq500_run_190611_NS500470_0167_AH2JT2BGXB/Instrument%20files%20for%20190611_NS500470_0167_AH2JT2BGXB/190611_NS500470_0167_AH2JT2BGXB:/data,$RESOURCE:/genomes,/home/nwong/mv50_scratch/TSO500_run2/results:/analysis"
+
+singularity run /usr/local/src/TSO/TSO170/TruSight_Tumour_170_Local_App_1.0.1.0.sif
