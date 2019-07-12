@@ -16,9 +16,9 @@ fqfiles = Channel
                  .map { file -> tuple(file.simpleName, file)}
                  
 fqfiles.into { fqfiles_readsplit; fqfiles_fastqc; fqfiles_align}
-results_path = \$PWD
+results_path = "/mnt/cephfs/scratch/nick.wong/david.curtis/aspreeRhAMPSeq"
 fqPairs = Channel 
-				 .fromFilePairs('fastq/*_{R1,R2}.fastq.gz', 'fastq/*_{1,2}.fq.gz')
+				 .fromFilePairs("fastq/*_{R1,R2}.fastq.gz", "fastq/*_{1,2}.fq.gz")
 				 .println()
 
 
@@ -42,24 +42,16 @@ process extractFqHeader {
 
 readout.subscribe { print "This is read header $it" }
 
-process extractFields {
+process bwa_mem {
 	input:
-	val head from header
+	file i from fqfiles_align
 	
 	output:
 	stdout headout
 	
 	script:
 	"""
-	IFS=: read ins run flo lan til xps yps <<< $head
-	echo \$read
-	echo \$ins
-	echo \$run
-	echo \$flo
-	echo \$lan
-	echo \$til
-	echo \$xps
-	echo \$yps
+    template 'bin/runBWAWithReadGroupsWithFastq'
 	"""
 }
 
