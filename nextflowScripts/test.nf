@@ -1,4 +1,4 @@
-#!/usr/bin/env nextflow
+
 
 params.str = 'Hello world!'
 
