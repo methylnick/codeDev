@@ -1,0 +1,75 @@
+#!/bin/bash
+# Usage: sbatch slurm-serial-job-script
+# Prepared By: Kai Xi,  Oct 2014
+#              help@massive.org.au
+
+# NOTE: To activate a SLURM option, remove the whitespace between the '#' and 'SBATCH'
+
+# To give your job a name, replace "MyJob" with an appropriate name
+#SBATCH --job-name=hapCall
+
+
+# To set a project account for credit charging, 
+#SBATCH --account=ha75
+
+
+# Request CPU resource for a serial job
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=12
+
+# Memory usage (MB)
+#SBATCH --mem-per-cpu=4000
+
+# Set your minimum acceptable walltime, format: day-hours:minutes:seconds
+#SBATCH --time=1-0:00:00
+
+
+# To receive an email when job completes or fails
+#SBATCH --mail-user=nick.wong@monash.edu
+#SBATCH --mail-type=END
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --array=1-12
+
+# Set the file for output (stdout)
+# SBATCH --output=/home/nwong/vh83_scratch/2018-03-27-wgbs-rerun/logs_slurm/bismark-%j-%A-%a.out
+
+# Set the file for error log (stderr)
+# SBATCH --error=/home/nwong/vh83_scratch/2018-03-27-wgbs-rerun/logs_slurm/bismark-%j-%A-%a.err
+
+
+# Use reserved node to run job when a node reservation is made for you already
+# SBATCH --reservation=reservation_name
+
+# SBATCH --partition=comp
+
+#SBATCH --dependency=afterok:10566772
+# SBATCH --reservation=highmem
+
+# Command to run a serial job
+module load gatk/4.1.2.0 
+module load picard/2.9.2
+
+REF="/home/nwong/ha75_scratch/nick/refFiles/hg38/bwa_0.7.17-gcc5/hg38_ref_noAlt.fa"
+
+R1=`find bamfilesTrimmed -name "*.bam" | awk -v line=$SLURM_ARRAY_TASK_ID '{if (NR == line) print $0}'`
+R2=`echo $R1 | sed 's:R1:R3:g'`
+R3=`echo $R1 | sed 's:bamfilesTrimmed/::g' | sed 's:.bam::g'`
+  
+picard MarkDuplicates \
+  I=${R1} \
+  O=bamfilesTrimmed_mDups/${R3}_mDups.bam \
+  METRICS_FILE=bamfilesTrimmed_mDups/${R3}_marked_dup_metrics.txt
+  
+picard BuildBamIndex \
+  I=bamfilesTrimmed_mDups/${R3}_mDups.bam
+
+gatk HaplotypeCaller \
+  -R ${REF} \
+  -I bamfilesTrimmed_mDups/${R3}_mDups.bam \
+  -O vcfsTrimmed/${R3}.vcf.gz 
+
+
+
