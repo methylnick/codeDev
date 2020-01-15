@@ -79,6 +79,7 @@ process bam_qc {
     stageInMode globalStageInMode
     module      picardModule
     module      samtoolsModule
+    module      RModule
     cpus        globalCores
     memory      globalMemoryM
     time        globalTimeM
