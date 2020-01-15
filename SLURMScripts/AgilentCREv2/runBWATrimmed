@@ -1,0 +1,93 @@
+#!/bin/bash
+# Usage: sbatch slurm-serial-job-script
+# Prepared By: Kai Xi,  Oct 2014
+#              help@massive.org.au
+
+# NOTE: To activate a SLURM option, remove the whitespace between the '#' and 'SBATCH'
+
+# To give your job a name, replace "MyJob" with an appropriate name
+#SBATCH --job-name=align
+
+
+# To set a project account for credit charging, 
+#SBATCH --account=ha75
+
+
+# Request CPU resource for a serial job
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=12
+
+# Memory usage (MB)
+#SBATCH --mem-per-cpu=4000
+
+# Set your minimum acceptable walltime, format: day-hours:minutes:seconds
+#SBATCH --time=0-4:00:00
+
+
+# To receive an email when job completes or fails
+#SBATCH --mail-user=nick.wong@monash.edu
+#SBATCH --mail-type=END
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-type=BEGIN
+
+#SBATCH --array=1-12
+
+# Set the file for output (stdout)
+# SBATCH --output=/home/nwong/vh83_scratch/2018-03-27-wgbs-rerun/logs_slurm/bismark-%j-%A-%a.out
+
+# Set the file for error log (stderr)
+# SBATCH --error=/home/nwong/vh83_scratch/2018-03-27-wgbs-rerun/logs_slurm/bismark-%j-%A-%a.err
+
+
+# Use reserved node to run job when a node reservation is made for you already
+# SBATCH --reservation=reservation_name
+
+# SBATCH --partition=comp
+
+# SBATCH --dependency=afterok:7651852
+# SBATCH --reservation=highmem
+
+# Command to run a serial job
+module load bwa/0.7.17-gcc5
+module load samtools/1.9-gcc5
+
+REF="/home/nwong/ha75_scratch/nick/refFiles/hg38/bwa_0.7.17-gcc5/hg38_ref_noAlt.fa"
+
+R1=`find fastqTrimmed -name "*R1.trimmed.fastq.gz" | awk -v line=$SLURM_ARRAY_TASK_ID '{if (NR == line) print $0}'`
+R2=`echo $R1 | sed 's:R1:R3:g'`
+R3=`echo $R1 | sed 's:fastqTrimmed/::g' | sed 's:_R1.trimmed.fastq.gz::g'`
+
+#Create information from fastq
+#split fastq by : and create variables from them for ReadGroups
+fq=`zcat ${R1} | head -1 | awk '{print $1}'`
+IFS=: read ins run flo lan til xps yps <<< $fq
+
+#Output the variables
+#echo $i
+#echo $j
+#echo $k
+#echo $l
+#echo $fq
+#echo ${ins}_${flo}
+#echo $run
+#echo $lan
+#echo $til
+#echo $xps
+#echo $yps
+
+#Running BWA proper, hard coding library and platform
+bwa mem -t 12 \
+  -R "@RG\tID:${ins}.${run}\tPU:${flo}.${lan}\tSM:${R3}\tPL:ILLUMINA\tLB:AgilentCREv2" \
+  ${REF} \
+  ${R1} ${R2} > bamfilesTrimmed/${R3}.sam
+
+#Run Samtools sort too
+samtools sort -T ${R3}_temp -o bamfilesTrimmed/${R3}.bam -O BAM -@ 12 bamfilesTrimmed/${R3}.sam
+samtools index bamfilesTrimmed/${R3}.bam
+samtools flagstat bamfilesTrimmed/${R3}.bam > bamfilesTrimmed/${R3}.bam.flagstat
+
+rm bamfilesTrimmed/${R3}.sam
+
+
+
