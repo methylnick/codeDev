@@ -59,7 +59,7 @@ process align_bwa {
    """
    bwa mem -t ${task.cpus} -R "@RG\\tID:${sampName}\\tPU:${sampName}\\tSM:${sampName}\\tPL:ILLUMINA\\tLB:rhAmpSeq" \
        $ref ${fastqs[0]} ${fastqs[1]} | samtools view -u -h -q 1 - \
-       samtools sort -@ $bwaCores -o "${sampName}.sorted.bam"
+       | samtools sort -@ $bwaCores -o "${sampName}.sorted.bam"
    samtools index "${sampName}.sorted.bam" "${sampName}.sorted.bam.bai"
    """
 }
