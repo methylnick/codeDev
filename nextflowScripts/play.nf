@@ -16,7 +16,7 @@ ref     = "${refBase}.fa"
 picardModule   = 'picard/2.9.2'
 bwaModule      = 'bwa/0.7.17-gcc5'
 samtoolsModule = 'samtools/1.9-gcc5'
-RModule        = 'R/3.6.0-mkl(default)'
+RModule        = 'R/3.6.0-mkl'
 
 // Global Resource Configuration Options
 globalExecutor    = 'slurm'
