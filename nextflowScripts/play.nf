@@ -20,13 +20,9 @@ vardictAmp = "${refFolder}/vardict_amplicon_rhAMPSeq.sorted.bed"
 picardModule   = 'picard/2.9.2'
 bwaModule      = 'bwa/0.7.17-gcc5'
 samtoolsModule = 'samtools/1.9-gcc5'
-<<<<<<< HEAD
-RModule        = 'R/3.6.0-mkl(default)'
 bedtoolsModule = 'bedtools/2.27.1-gcc5'
 bcftoolsModule = 'bcftools/1.8'
-=======
 RModule        = 'R/3.6.0-mkl'
->>>>>>> 218f8b313c5edd26f68ccbc90d6ae592c1330c61
 
 // Global Resource Configuration Options
 globalExecutor    = 'slurm'
@@ -91,15 +87,9 @@ process bam_qc {
     module      samtoolsModule
     module      RModule
     cpus        globalCores
-<<<<<<< HEAD
     memory      globalMemoryM
     time        globalTimeS
     queue       globalQueueS
-=======
-    memory      globalMemoryL
-    time        globalTimeM
-    queue       globalQueueL
->>>>>>> 218f8b313c5edd26f68ccbc90d6ae592c1330c61
 
    script:
    """
