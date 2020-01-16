@@ -20,9 +20,13 @@ vardictAmp = "${refFolder}/vardict_amplicon_rhAMPSeq.sorted.bed"
 picardModule   = 'picard/2.9.2'
 bwaModule      = 'bwa/0.7.17-gcc5'
 samtoolsModule = 'samtools/1.9-gcc5'
+<<<<<<< HEAD
 RModule        = 'R/3.6.0-mkl(default)'
 bedtoolsModule = 'bedtools/2.27.1-gcc5'
 bcftoolsModule = 'bcftools/1.8'
+=======
+RModule        = 'R/3.6.0-mkl'
+>>>>>>> 218f8b313c5edd26f68ccbc90d6ae592c1330c61
 
 // Global Resource Configuration Options
 globalExecutor    = 'slurm'
@@ -77,7 +81,7 @@ process bam_qc {
      set sampName, file(bam), file(bai) from ch_mappedBams
 
    output:
-     set sampName, file("${sampName}_alignment_metrics.txt"), file("${sampName}_multiple_metrics.txt") into ch_outQC
+     set sampName, file("${sampName}_alignment_metrics.txt"), file("${sampName}.mm*") into ch_outQC
 
    publishDir path: './qc_out/picard', mode: 'copy'
 
@@ -87,9 +91,15 @@ process bam_qc {
     module      samtoolsModule
     module      RModule
     cpus        globalCores
+<<<<<<< HEAD
     memory      globalMemoryM
     time        globalTimeS
     queue       globalQueueS
+=======
+    memory      globalMemoryL
+    time        globalTimeM
+    queue       globalQueueL
+>>>>>>> 218f8b313c5edd26f68ccbc90d6ae592c1330c61
 
    script:
    """
@@ -100,7 +110,7 @@ process bam_qc {
 
    picard CollectMultipleMetrics \
      I="${bam}"  \
-     O="${sampName}_multiple_metrics.txt"  \
+     O="${sampName}.mm"  \
      R="${ref}" 
      
    picard picard CollectTargetedPcrMetrics   \
