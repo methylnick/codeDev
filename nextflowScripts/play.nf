@@ -71,7 +71,7 @@ process bam_qc {
      set sampName, file(bam), file(bai) from ch_mappedBams
 
    output:
-     set sampName, file("${sampName}_alignment_metrics.txt"), file("${sampName}_multiple_metrics.txt") into ch_outQC
+     set sampName, file("${sampName}_alignment_metrics.txt"), file("${sampName}.mm*") into ch_outQC
 
    publishDir path: './qc_out', mode: 'copy'
 
@@ -81,7 +81,7 @@ process bam_qc {
     module      samtoolsModule
     module      RModule
     cpus        globalCores
-    memory      globalMemoryM
+    memory      globalMemoryL
     time        globalTimeM
     queue       globalQueueL
 
@@ -94,7 +94,7 @@ process bam_qc {
 
    picard CollectMultipleMetrics \
      I="${bam}"  \
-     O="${sampName}_multiple_metrics.txt"  \
+     O="${sampName}.mm"  \
      R="${ref}" 
    """
 }
