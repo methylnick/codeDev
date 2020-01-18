@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
 /*
- * Another attempt at a nextflow script 2020-01-17
+ * Another attempt at a nextflow script 2020-01-18
  * This is a test and dev script so it is going straight to the short queue
  */
 
@@ -167,7 +167,7 @@ process vardict {
     export PATH=/home/nwong/bin/VarDict-master:$PATH
     vardict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} \
       -z 0 -c 1 -S 2 -E 3 -g 4 -y \
-      ${vardictAmp} | teststrandbias.R  \
+      ${vardictAmp}  \
       | var2vcf_valid.pl \
       -N ${sampName} -E -f ${AF_THR} > "${sampName}.vcf"
 
