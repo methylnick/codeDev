@@ -121,7 +121,7 @@ process coverage_qc {
 	output:
 	  set sampName, file("${sampName}.bedtools.coverage") into ch_coverageQC
 	  
-	publishDir path: '.qc_out/bedtools', mode: 'copy'
+	publishDir path: './qc_out/bedtools', mode: 'copy'
 	
     executor    globalExecutor
     stageInMode globalStageInMode
@@ -147,7 +147,7 @@ process vardict {
     output:
       set sampName, file("${sampName}.vcf") into ch_vardict
 	  
-    publishDir path: '.vardict/', mode: 'copy'
+    publishDir path: './vardict/', mode: 'copy'
 	
     executor    globalExecutor
     stageInMode globalStageInMode
