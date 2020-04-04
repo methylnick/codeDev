@@ -11,10 +11,12 @@ inputDirectory = file('fastq')
 AF_THR          = 0.0025
 
 // Declare References 
-refBase = "${refFolder}/genome"
-ref     = "${refBase}.fa"
-target  = "${refFolder}/rhAMPTargetROI_hg19.sorted.bed"
-vardictAmp = "${refFolder}/vardict_amplicon_rhAMPSeq.sorted.bed"
+refBase        = "${refFolder}/genome"
+ref            = "${refBase}.fa"
+target         = "${refFolder}/rhAMPTargetROI_hg19.sorted.bed"
+picardInsert   = "${refFolder}/rhAMPTargetROI_hg19.sorted.bed"
+picardAmplicon = "${refFolder}/rhAMPTargetROI_hg19.sorted.bed"
+vardictAmp     = "${refFolder}/vardict_amplicon_rhAMPSeq.sorted.bed"
 
 // Tools
 picardModule   = 'picard/2.9.2'
@@ -30,7 +32,7 @@ Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
 
 process align_bwa {
 
-   label 'bwa_small'
+   label 'bwa'
 
    input:
      set sampName, file(fastqs) from ch_fastaIn
@@ -39,6 +41,8 @@ process align_bwa {
      set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into ch_mappedBams
      set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into ch_mappedBams2
      set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into ch_mappedBams3
+     set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into ch_mappedBams4
+     set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into ch_mappedBams5
 
    publishDir path: './out_bam', mode: 'copy'
 
@@ -54,25 +58,21 @@ process align_bwa {
    """
 }
 
-process bam_qc {
+process bam_qc1 {
+	
+   label 'medium_1h'
 
    input:
      set sampName, file(bam), file(bai) from ch_mappedBams
 
    output:
-     set sampName, file("${sampName}_alignment_metrics.txt"), file("${sampName}.mm*"), file("${sampName}_pcr_metrics.txt") into ch_outQC
+     set sampName, file("${sampName}_alignment_metrics.txt") into ch_outQC
 
    publishDir path: './qc_out/picard', mode: 'copy'
 
-    executor    globalExecutor
-    stageInMode globalStageInMode
     module      picardModule
     module      samtoolsModule
     module      RModule
-    cpus        globalCores
-    memory      globalMemoryL
-    time        globalTimeS
-    queue       globalQueueS
 
    script:
    """
@@ -80,12 +80,52 @@ process bam_qc {
      I="${bam}"  \
      O="${sampName}_alignment_metrics.txt"  \
      R="${ref}" 
+   """
+}
 
+process bam_qc2 {
+	
+   label 'medium_1h'
+
+   input:
+     set sampName, file(bam), file(bai) from ch_mappedBams2
+
+   output:
+     set sampName, file("${sampName}.mm*") into ch_outQC2
+
+   publishDir path: './qc_out/picard', mode: 'copy'
+
+    module      picardModule
+    module      samtoolsModule
+    module      RModule
+
+   script:
+   """
    picard CollectMultipleMetrics \
      I="${bam}"  \
      O="${sampName}.mm"  \
      R="${ref}" 
-     
+   """
+}
+
+process bam_qc3 {
+	
+   label 'medium_1h'
+
+   input:
+     set sampName, file(bam), file(bai) from ch_mappedBams3
+
+   output:
+     set sampName, file("${sampName}_pcr_metrics.txt") into ch_outQC3
+
+   publishDir path: './qc_out/picard', mode: 'copy'
+
+    module      picardModule
+    module      samtoolsModule
+    module      RModule
+
+   script:
+   """
    picard CollectTargetedPcrMetrics   \
      I="${bam}"  \
      O="${sampName}_pcr_metrics.txt"  \
@@ -96,21 +136,18 @@ process bam_qc {
 }
 
 process coverage_qc {
+	
+	label 'medium_1h'
+	
 	input:
-	  set sampName, file(bam), file(bai) from ch_mappedBams2
+	  set sampName, file(bam), file(bai) from ch_mappedBams4
 	  
 	output:
 	  set sampName, file("${sampName}.bedtools.coverage") into ch_coverageQC
 	  
 	publishDir path: './qc_out/bedtools', mode: 'copy'
 	
-    executor    globalExecutor
-    stageInMode globalStageInMode
     module      bedtoolsModule
-    cpus        globalCores
-    memory      globalMemoryM
-    time        globalTimeS
-    queue       globalQueueS
     
     script:
     """
@@ -122,23 +159,19 @@ process coverage_qc {
 }
 
 process vardict {
+    
+    label 'vardict'
+    
     input:
-      set sampName, file(bam), file(bai) from ch_mappedBams3
+      set sampName, file(bam), file(bai) from ch_mappedBams5
 	  
     output:
       set sampName, file("${sampName}.vcf") into ch_vardict
 	  
     publishDir path: './vardict/', mode: 'copy'
-	
-    executor    globalExecutor
-    stageInMode globalStageInMode
-    module      bwaModule
+
     module      RModule
     module      samtoolsModule
-    cpus        globalCores
-    memory      globalMemoryM
-    time        globalTimeS
-    queue       globalQueueS
     
     script:
     """
@@ -151,11 +184,12 @@ process vardict {
       ${vardictAmp}  \
       | var2vcf_valid.pl \
       -N ${sampName} -E -f ${AF_THR} > "${sampName}.vcf"
-
     """
 }
 
 process sortVCFS {
+
+    label 'medium_1h'
 
     input:
         set sampName, file(vcf) from ch_vardict
@@ -164,13 +198,8 @@ process sortVCFS {
 
     publishDir path: './variants_raw_out', mode: 'copy'                                    
     
-    module      bcftoolsModule
-    executor    globalExecutor                                                    
-    stageInMode globalStageInMode                                                 
+    module      bcftoolsModule                                               
     module      bwaModule
-    memory      globalMemoryM 
-    time        globalTimeS
-    queue       globalQueueS
 
     script:
     """
@@ -179,6 +208,9 @@ process sortVCFS {
 }
 
 process indexVCFS {
+    
+    label 'small_1'
+    
     input:
         set sampName, file(vcf) from ch_sortedVCF
     output:
@@ -186,17 +218,13 @@ process indexVCFS {
 
     publishDir path: './variants_raw_out', mode: 'copy'                                    
     
-    module      bcftoolsModule
-    executor    globalExecutor                                                    
-    stageInMode globalStageInMode                                                 
+    module      bcftoolsModule                                                
     module      bwaModule
-    memory      globalMemoryM 
-    time        globalTimeS
-    queue       globalQueueS
 
     script:
     """
     bcftools index -f --tbi ${vcf} -o "${sampName}.sorted.vcf.gz.tbi"
     """
 }
+
 
