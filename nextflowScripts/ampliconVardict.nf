@@ -6,17 +6,17 @@
  */
 
 // Declare Inputs
-refFolder = file("refFiles")
+refFolder = file("/home/nwong/ls25_scratch/nick.wong/refFiles")
 inputDirectory = file('fastq')
 AF_THR          = 0.0025
 
 // Declare References 
 refBase        = "${refFolder}/genome"
 ref            = "${refBase}.fa"
-target         = "${refFolder}/rhAMPTargetROI_hg19.sorted.bed"
-picardInsert   = "${refFolder}/rhAMPTargetROI_hg19.sorted.bed"
-picardAmplicon = "${refFolder}/rhAMPTargetROI_hg19.sorted.bed"
-vardictAmp     = "${refFolder}/vardict_amplicon_rhAMPSeq.sorted.bed"
+target         = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed"
+picardInsert   = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed.interval"
+picardAmplicon = "${refFolder}/chip_v2_amplicon_bed_amplicon_20200324.bed.interval"
+vardictAmp     = "${refFolder}/chip_v2_amplicon_bed_vardict_20200324.bed"
 
 // Tools
 picardModule   = 'picard/2.9.2'
@@ -53,7 +53,7 @@ process align_bwa {
    """
    bwa mem -t ${task.cpus} -R "@RG\\tID:${sampName}\\tPU:${sampName}\\tSM:${sampName}\\tPL:ILLUMINA\\tLB:rhAmpSeq" \
        $ref ${fastqs[0]} ${fastqs[1]} | samtools view -u -h -q 1 - \
-       | samtools sort -@ $bwaCores -o "${sampName}.sorted.bam"
+       | samtools sort -@ $task.cpus -o "${sampName}.sorted.bam"
    samtools index "${sampName}.sorted.bam" "${sampName}.sorted.bam.bai"
    """
 }
@@ -130,8 +130,8 @@ process bam_qc3 {
      I="${bam}"  \
      O="${sampName}_pcr_metrics.txt"  \
      R="${ref}" \
-     AMPLICON_INTERVALS="${refFolder}/rhAMPTargetROI_hg19.interval_list" \
-     TARGET_INTERVALS="${refFolder}/CHIPMutations_hg19_050219.extend.interval_list"
+     AMPLICON_INTERVALS="${picardAmplicon}" \
+     TARGET_INTERVALS="${picardAmplicon}"
    """
 }
 
@@ -166,24 +166,40 @@ process vardict {
       set sampName, file(bam), file(bai) from ch_mappedBams5
 	  
     output:
-      set sampName, file("${sampName}.vcf") into ch_vardict
+      set sampName, file("${sampName}.tsv") into ch_vcfMake
 	  
-    publishDir path: './vardict/', mode: 'copy'
+    publishDir path: './raw_variants/', mode: 'copy'
 
-    module      RModule
-    module      samtoolsModule
-    
     script:
     """
     module purge
-    module load R/3.5.1
     module load samtools
-    export PATH=/home/nwong/bin/VarDict-master:$PATH
-    vardict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} \
-      -z 0 -c 1 -S 2 -E 3 -g 4 -y \
+    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
+    VarDict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} -th ${task.cpus} \
       ${vardictAmp}  \
-      | var2vcf_valid.pl \
-      -N ${sampName} -E -f ${AF_THR} > "${sampName}.vcf"
+      >  "${sampName}.tsv"
+    """
+}
+
+process makeVCF {
+    
+    label 'small_1'
+
+    input:
+        set sampName, file(tsv) from ch_vcfMake
+    output:
+        set sampName, file("${sampName}.vardict.vcf") into ch_vardict
+    
+    publishDir path: './vardict', mode: 'copy'
+
+    script:
+    """
+    module purge
+    module load R
+    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
+    cat ${tsv} | teststrandbias.R | \
+        var2vcf_valid.pl -N "${sampName}" \
+        -f ${AF_THR} -E > "${sampName}.vardict.vcf"
     """
 }
 
