@@ -24,26 +24,13 @@ bedtoolsModule = 'bedtools/2.27.1-gcc5'
 bcftoolsModule = 'bcftools/1.8'
 RModule        = 'R/3.6.0-mkl'
 
-// Global Resource Configuration Options
-globalExecutor    = 'slurm'
-globalStageInMode = 'symlink'
-globalCores       = 1
-bwaCores	      = 4
-vepCores          = 4
-globalMemoryS     = '6 GB'
-globalMemoryM     = '8 GB'
-globalMemoryL     = '64 GB'
-globalTimeS       = '30m'
-globalTimeM       = '3h'
-globalTimeL       = '24h'
-globalQueueS      = 'short'
-globalQueueL      = 'comp'
-
 // Create channel stream
 Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
   .set{ ch_fastaIn }
 
 process align_bwa {
+
+   label 'bwa_small'
 
    input:
      set sampName, file(fastqs) from ch_fastaIn
@@ -55,14 +42,8 @@ process align_bwa {
 
    publishDir path: './out_bam', mode: 'copy'
 
-    executor    globalExecutor
-    stageInMode globalStageInMode
     module      bwaModule
     module      samtoolsModule
-    cpus        bwaCores
-    memory      globalMemoryM
-    time        globalTimeS
-    queue       globalQueueS
 
    script:
    """
