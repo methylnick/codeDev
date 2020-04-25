@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
 /*
- * Another attempt at a nextflow script 2020-01-17
+ * Another attempt at a nextflow script 2020-01-18
  * This is a test and dev script so it is going straight to the short queue
  */
 
@@ -42,11 +42,38 @@ globalQueueL      = 'comp'
 // Create channel stream
 Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
   .set{ ch_fastaIn }
+  
+process skewer {
+   input:
+	 set sampName, file(rawfqs) from ch_fastaIn
+   
+   output:
+     set sampName file("${sampName)-trimmed-pair1.fastq.gz"), file("${sampName)-trimmed-pair1.fastq.gz"), file("${sampName)-trimmed.log") into ch_fastaToBwa
+     set sampName file("${sampName)-trimmed-pair1.fastq.gz"), file("${sampName)-trimmed-pair1.fastq.gz"), file("${sampName)-trimmed.log") into ch_fastaToFastqc
+     
+   publishDir path: './fastq/trimmed', mode: 'copy'
+   
+   
+   
+   script:
+   """
+   ${SKEWER}/skewer -t ${task.cpus} -q 20 ${rawfqs[0]} ${rawfqs[1]} -z -o "${sampName}"
+   """
+}
+
+process fastqc {
+   input:
+     set sampName, file(trimFqs) from ch_fastaToFastqc
+   
+   output:
+      set sampName file("${}"), file
+}
+
 
 process align_bwa {
 
    input:
-     set sampName, file(fastqs) from ch_fastaIn
+     set sampName, file(fastqs) from ch_fastaToBwa
 
    output:
      set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into ch_mappedBams
@@ -79,7 +106,7 @@ process bam_qc {
      set sampName, file(bam), file(bai) from ch_mappedBams
 
    output:
-     set sampName, file("${sampName}_alignment_metrics.txt"), file("${sampName}.mm*") into ch_outQC
+     set sampName, file("${sampName}_alignment_metrics.txt"), file("${sampName}.mm*"), file("${sampName}_pcr_metrics.txt") into ch_outQC
 
    publishDir path: './qc_out/picard', mode: 'copy'
 
@@ -89,7 +116,7 @@ process bam_qc {
     module      samtoolsModule
     module      RModule
     cpus        globalCores
-    memory      globalMemoryM
+    memory      globalMemoryL
     time        globalTimeS
     queue       globalQueueS
 
@@ -133,7 +160,7 @@ process coverage_qc {
     
     script:
     """
-    bedtools coverage -a ${target}. \
+    bedtools coverage -a ${target} \
       -b ${bam} \
       -hist > ${sampName}.bedtools.coverage
     """
@@ -145,13 +172,15 @@ process vardict {
       set sampName, file(bam), file(bai) from ch_mappedBams3
 	  
     output:
-      set sampName, file("sampName}.vcf") into ch_vardict
+      set sampName, file("${sampName}.vcf") into ch_vardict
 	  
     publishDir path: '.vardict/', mode: 'copy'
 	
     executor    globalExecutor
     stageInMode globalStageInMode
     module      bwaModule
+    module      RModule
+    module      samtoolsModule
     cpus        globalCores
     memory      globalMemoryM
     time        globalTimeS
@@ -159,12 +188,15 @@ process vardict {
     
     script:
     """
+    module purge
+    module load R/3.5.1
+    module load samtools
     export PATH=/home/nwong/bin/VarDict-master:$PATH
     vardict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} \
       -z 0 -c 1 -S 2 -E 3 -g 4 -y \
-      ${vardictAmp} | teststrandbias.R  \
+      ${vardictAmp}  \
       | var2vcf_valid.pl \
-      -N ${sampName} -E -f ${AF_THR} > "${sampName}.vardict.vcf"
+      -N ${sampName} -E -f ${AF_THR} > "${sampName}.vcf"
 
     """
 }
@@ -194,9 +226,9 @@ process sortVCFS {
 
 process indexVCFS {
     input:
-        set baseName, file(vcf) from ch_sortedVCF
+        set sampName, file(vcf) from ch_sortedVCF
     output:
-        set baseName, file(vcf), file("${sampName}.sorted.vcf.gz.tbi") into ch_indexedVCF
+        set sampName, file(vcf), file("${sampName}.sorted.vcf.gz.tbi") into ch_indexedVCF
 
     publishDir path: './variants_raw_out', mode: 'copy'                                    
     
@@ -210,7 +242,7 @@ process indexVCFS {
 
     script:
     """
-    bcftools index -f --tbi ${vcf} -o ${sampName}.sorted.vcf.gz.tbi
+    bcftools index -f --tbi ${vcf} -o "${sampName}.sorted.vcf.gz.tbi"
     """
 }
 

@@ -1,0 +1,4 @@
+Notes on nextflow scripting
+modules can be specifed within the script to be used. 
+smux interactive session is required to run the nextflow script
+

@@ -1,20 +1,20 @@
 #!/usr/bin/env nextflow
 
 /*
- * Another attempt at a nextflow script 2020-01-17
- * This is a test and dev script so it is going straight to the short queue
+ * Primetime nextflow script 2020-03-10
+ * Contains vardict reference files for the v2 panel
  */
 
 // Declare Inputs
-refFolder = file("refFiles")
-inputDirectory = file('fastq')
+refFolder = file("/scratch/df22/nick.wong/david.curtis/refFiles")
+inputDirectory = file('/home/nwong/df22_scratch/nick.wong/david.curtis/2020-03-10-rhAmpSeqv2-Run1/Results/rhAmpSeqV2')
 AF_THR          = 0.0025
 
 // Declare References 
 refBase = "${refFolder}/genome"
 ref     = "${refBase}.fa"
-target  = "${refFolder}/rhAMPTargetROI_hg19.sorted.bed"
-vardictAmp = "${refFolder}/vardict_amplicon_rhAMPSeq.sorted.bed"
+target  = "${refFolder}/chip_v2_amplicon_bed_amplicon_20200310.bed"
+vardictAmp = "${refFolder}/chip_v2_amplicon_bed_vardict_20200210.bed"
 
 // Tools
 picardModule   = 'picard/2.9.2'
@@ -28,7 +28,7 @@ RModule        = 'R/3.6.0-mkl'
 globalExecutor    = 'slurm'
 globalStageInMode = 'symlink'
 globalCores       = 1
-bwaCores	      = 4
+bwaCores	      = 8
 vepCores          = 4
 globalMemoryS     = '6 GB'
 globalMemoryM     = '8 GB'
@@ -40,7 +40,7 @@ globalQueueS      = 'short'
 globalQueueL      = 'comp'
 
 // Create channel stream
-Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
+Channel.fromFilePairs("${inputDirectory}/*_R{1,2}_001.fastq.gz")
   .set{ ch_fastaIn }
 
 process align_bwa {
@@ -60,9 +60,9 @@ process align_bwa {
     module      bwaModule
     module      samtoolsModule
     cpus        bwaCores
-    memory      globalMemoryM
-    time        globalTimeS
-    queue       globalQueueS
+    memory      globalMemoryL
+    time        globalTimeM
+    queue       globalQueueL
 
    script:
    """
@@ -79,7 +79,7 @@ process bam_qc {
      set sampName, file(bam), file(bai) from ch_mappedBams
 
    output:
-     set sampName, file("${sampName}_alignment_metrics.txt"), file("${sampName}.mm*") into ch_outQC
+     set sampName, file("${sampName}_alignment_metrics.txt"), file("${sampName}.mm*"), file("${sampName}_pcr_metrics.txt") into ch_outQC
 
    publishDir path: './qc_out/picard', mode: 'copy'
 
@@ -89,7 +89,7 @@ process bam_qc {
     module      samtoolsModule
     module      RModule
     cpus        globalCores
-    memory      globalMemoryM
+    memory      globalMemoryL
     time        globalTimeS
     queue       globalQueueS
 
@@ -109,8 +109,8 @@ process bam_qc {
      I="${bam}"  \
      O="${sampName}_pcr_metrics.txt"  \
      R="${ref}" \
-     AMPLICON_INTERVALS="${refFolder}/rhAMPTargetROI_hg19.interval_list" \
-     TARGET_INTERVALS="${refFolder}/CHIPMutations_hg19_050219.extend.interval_list"
+     AMPLICON_INTERVALS="${refFolder}/chip_v2_amplicon_bed_amplicon_20200310.bed.interval" \
+     TARGET_INTERVALS="${refFolder}/chip_v2_amplicon_bed_amplicon_20200310.bed.interval"
    """
 }
 
@@ -127,13 +127,13 @@ process coverage_qc {
     stageInMode globalStageInMode
     module      bedtoolsModule
     cpus        globalCores
-    memory      globalMemoryM
+    memory      globalMemoryL
     time        globalTimeS
     queue       globalQueueS
     
     script:
     """
-    bedtools coverage -a ${target}. \
+    bedtools coverage -a ${target} \
       -b ${bam} \
       -hist > ${sampName}.bedtools.coverage
     """
@@ -145,26 +145,31 @@ process vardict {
       set sampName, file(bam), file(bai) from ch_mappedBams3
 	  
     output:
-      set sampName, file("sampName}.vcf") into ch_vardict
+      set sampName, file("${sampName}.vcf") into ch_vardict
 	  
     publishDir path: '.vardict/', mode: 'copy'
 	
     executor    globalExecutor
     stageInMode globalStageInMode
     module      bwaModule
+    module      RModule
+    module      samtoolsModule
     cpus        globalCores
     memory      globalMemoryM
-    time        globalTimeS
-    queue       globalQueueS
+    time        globalTimeM
+    queue       globalQueueL
     
     script:
     """
+    module purge
+    module load R/3.5.1
+    module load samtools
     export PATH=/home/nwong/bin/VarDict-master:$PATH
     vardict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} \
       -z 0 -c 1 -S 2 -E 3 -g 4 -y \
-      ${vardictAmp} | teststrandbias.R  \
+      ${vardictAmp}  \
       | var2vcf_valid.pl \
-      -N ${sampName} -E -f ${AF_THR} > "${sampName}.vardict.vcf"
+      -N ${sampName} -E -f ${AF_THR} > "${sampName}.vcf"
 
     """
 }
@@ -194,9 +199,9 @@ process sortVCFS {
 
 process indexVCFS {
     input:
-        set baseName, file(vcf) from ch_sortedVCF
+        set sampName, file(vcf) from ch_sortedVCF
     output:
-        set baseName, file(vcf), file("${sampName}.sorted.vcf.gz.tbi") into ch_indexedVCF
+        set sampName, file(vcf), file("${sampName}.sorted.vcf.gz.tbi") into ch_indexedVCF
 
     publishDir path: './variants_raw_out', mode: 'copy'                                    
     
@@ -210,7 +215,7 @@ process indexVCFS {
 
     script:
     """
-    bcftools index -f --tbi ${vcf} -o ${sampName}.sorted.vcf.gz.tbi
+    bcftools index -f --tbi ${vcf} -o "${sampName}.sorted.vcf.gz.tbi"
     """
 }
 

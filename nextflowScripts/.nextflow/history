@@ -1,2 +1,0 @@
-2019-07-10 14:03:26	4.8s	desperate_khorana	OK	4b1a947f5f34880a2d20d7be66e9700d	8f1b8495-7c8b-4bcf-b32c-54fc2d352ead	nextflow test.nf
-2019-07-10 14:05:45	4s	clever_hoover	OK	4b1a947f5f34880a2d20d7be66e9700d	e81bcfb2-1d26-4861-961e-ccfb929b8f91	nextflow test.nf --str ':Nick Wong'
