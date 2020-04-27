@@ -25,8 +25,6 @@ samtoolsModule = 'samtools/1.9-gcc5'
 bedtoolsModule = 'bedtools/2.27.1-gcc5'
 bcftoolsModule = 'bcftools/1.8'
 RModule        = 'R/3.6.0-mkl'
-skewerModule   = 'skewer/20170212'
-fastqcModule   = 'fastqc/0.11.7'
 
 // Create channel stream
 Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
@@ -171,8 +169,6 @@ process vardict {
       set sampName, file("${sampName}.tsv") into ch_vcfMake
 	  
     publishDir path: './raw_variants/', mode: 'copy'
-    
-    module RModule
 
     script:
     """
@@ -188,9 +184,7 @@ process vardict {
 process makeVCF {
     
     label 'small_1'
-    
-    module RModule
-    
+
     input:
         set sampName, file(tsv) from ch_vcfMake
     output:
@@ -200,10 +194,52 @@ process makeVCF {
 
     script:
     """
+    module purge
+    module load R
     export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
     cat ${tsv} | teststrandbias.R | \
         var2vcf_valid.pl -N "${sampName}" \
         -f ${AF_THR} -E > "${sampName}.vardict.vcf"
+    """
+}
+
+process sortVCFS {
+
+    label 'medium_1h'
+
+    input:
+        set sampName, file(vcf) from ch_vardict
+    output:
+        set sampName, file("${sampName}.sorted.vcf.gz") into ch_sortedVCF
+
+    publishDir path: './variants_raw_out', mode: 'copy'                                    
+    
+    module      bcftoolsModule                                               
+    module      bwaModule
+
+    script:
+    """
+    bcftools sort -o "${sampName}.sorted.vcf.gz" -O z ${vcf}
+    """
+}
+
+process indexVCFS {
+    
+    label 'small_1'
+    
+    input:
+        set sampName, file(vcf) from ch_sortedVCF
+    output:
+        set sampName, file(vcf), file("${sampName}.sorted.vcf.gz.tbi") into ch_indexedVCF
+
+    publishDir path: './variants_raw_out', mode: 'copy'                                    
+    
+    module      bcftoolsModule                                                
+    module      bwaModule
+
+    script:
+    """
+    bcftools index -f --tbi ${vcf} -o "${sampName}.sorted.vcf.gz.tbi"
     """
 }
 
