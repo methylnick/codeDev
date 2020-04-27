@@ -25,10 +25,35 @@ samtoolsModule = 'samtools/1.9-gcc5'
 bedtoolsModule = 'bedtools/2.27.1-gcc5'
 bcftoolsModule = 'bcftools/1.8'
 RModule        = 'R/3.6.0-mkl'
+fastqcModule         = 'fastqc/0.11.7'
 
 // Create channel stream
 Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
   .set{ ch_fastaIn }
+  
+Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
+  .set{ ch_fastQC }
+
+process fastqc {
+   
+   label 'fastqc'
+
+   input:
+     set sampName, file(fastqs) from ch_fastQC
+
+   output:
+     set sampName, file("*.zip"), file("*.html") into ch_outFastQC
+
+
+   publishDir path: './qc_out/fastqc', mode: 'copy'
+
+    module      fastqcModule
+
+   script:
+   """
+   fastqc -t ${task.cpus} ${fastqs[0]} ${fastqs[1]}
+   """
+}
 
 process align_bwa {
 
@@ -43,7 +68,8 @@ process align_bwa {
      set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into ch_mappedBams3
      set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into ch_mappedBams4
      set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into ch_mappedBams5
-
+     set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into ch_mappedBams6
+     
    publishDir path: './out_bam', mode: 'copy'
 
     module      bwaModule
@@ -55,6 +81,26 @@ process align_bwa {
        $ref ${fastqs[0]} ${fastqs[1]} | samtools view -u -h -q 1 - \
        | samtools sort -@ $task.cpus -o "${sampName}.sorted.bam"
    samtools index "${sampName}.sorted.bam" "${sampName}.sorted.bam.bai"
+   """
+}
+
+process bam_stats {
+   label 'fastqc'
+	
+   input:
+     set sampName, file(bam), file(bai) from ch_mappedBams6
+
+   output:
+      set sampName, file("${sampName}.samtools.stats"), file("${sampName}.idxstats") into ch_outSAMStats
+   
+   publishDir path: '.qc_out/samtools', mode: 'copy'
+   
+    module		samtoolsModule
+    
+   script:
+   """
+   samtools stats -@ ${task.cpus} ${bam} > ${sampName}.samtools.stats
+   samtools idxstats ${bam} > ${sampName}.idxstats
    """
 }
 
