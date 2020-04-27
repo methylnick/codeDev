@@ -1,0 +1,11 @@
+#!/bin/bash
+
+~/bin/bcl2fastq-v2-20/bin/bcl2fastq  \
+  --runfolder-dir 20200306_NW_DC_rhampseq_nxMid/Files  \
+  --output-dir  Results2MM  \
+  --sample-sheet SampleSheet.csv  \
+  --loading-threads 8  \
+  --processing-threads 8  \
+  --use-bases-mask y149,i10,i10,y149  \
+  --no-lane-splitting \
+  --barcode-mismatches 2
