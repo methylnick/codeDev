@@ -124,6 +124,8 @@ process picardMarkDup {
      set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups7
      set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups8
      set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups9
+     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups10
+     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups11
 
    publishDir path: './bamFiles', mode: 'copy'
 
@@ -304,3 +306,107 @@ process bedtools {
 	
 }
 
+process qualimap {
+	
+	label 'medium_1h'
+	
+	input:
+	  set sampName, file(bam), file(bai) from ch_outMdups8
+	  
+	output:
+	  set sampName, file(*) into ch_outQualimap
+	  
+	publishDir path: './qc_out/qualimap', mode: 'copy'
+    
+    script:
+    """
+    export PATH=$PATH:/home/nwong/bin/qualimap_v2.2.1
+    qualimap rnaseq -bam ${bam} \
+       --paired \
+       --sorted \
+       -gtf ${genes} \
+       -oc ${sampName}_counts.txt \
+       --sequencing-protocol strand-specific-reverse \
+       --java-mem-size=6G
+    """
+	
+}
+
+
+process fc_ustrand {
+	
+	label 'vardict'
+	
+	input:
+	  set sampName, file(bam), file(bai) from ch_outMdups9.collect()
+	  
+	output:
+	  set sampName, file(*) into ch_outFeatureCounts
+	  
+	publishDir path: './counts', mode: 'copy'
+	
+	module      subreadModule
+    
+    script:
+    """
+    featureCounts -T ${task.cpus} \
+       -s 0 \
+       -a ${genes} \
+       -p \
+       -o NonStrandedCounts.txt \
+       ${bam}
+    """
+	
+}
+
+process fc_strand {
+	
+	label 'vardict'
+	
+	input:
+	  set sampName, file(bam), file(bai) from ch_outMdups10.collect()
+	  
+	output:
+	  set sampName, file(*) into ch_outFeatureCounts
+	  
+	publishDir path: './counts', mode: 'copy'
+	
+	module      subreadModule
+    
+    script:
+    """
+    featureCounts -T ${task.cpus} \
+       -s 1 \
+       -a ${genes} \
+       -p \
+       -o StrandedCounts.txt \
+       ${bam}
+    """
+	
+}
+
+process fc_revStrand {
+	
+	label 'vardict'
+	
+	input:
+	  set sampName, file(bam), file(bai) from ch_outMdups11.collect()
+	  
+	output:
+	  set sampName, file(*) into ch_outFeatureCounts
+	  
+	publishDir path: './counts', mode: 'copy'
+	
+	module      subreadModule
+    
+    script:
+    """
+    featureCounts -T ${task.cpus} \
+       -s 2 \
+       -a ${genes} \
+       -p \
+       -o ReverseStrandedCounts.txt \
+       ${bam}
+    """
+	
+}
