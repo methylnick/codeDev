@@ -10,9 +10,9 @@ refFolder = file("/home/nwong/df22_scratch/references/iGenomes")
 inputDirectory = file('fastq')
 
 // Declare References 
-starRef        = "${refFolder}/Homo_sapiens/Ensembl/GRCh38/Sequence/STARIndex"
+starRef        = "/home/nwong/df22_scratch/nick.wong/2020-05-10-PanCancer/starIndex"
 ref            = "${refFolder}/Homo_sapiens/Ensembl/GRCh38/Sequence/WholeGenomeFasta/genome.fa"
-genes.         = "${refFolder}/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes.gtf"
+genes         = "${refFolder}/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes.gtf"
 
 // Tools
 picardModule   = 'picard/2.9.2'
@@ -62,7 +62,7 @@ process align_STAR {
      set sampName, file(fastqs) from ch_fastaIn
 
    output:
-     set sampName, file("${sampName}_Aligned.out.bam"), file("${sampName}_Log.final.out"), file(${sampName}_Log.out"), file("${sampName}_Log.progress.out"), file("${sampName}_SJ.out.tab")  into ch_mappedBams
+     set sampName, file("${sampName}_Aligned.out.bam"), file("${sampName}_Log.final.out"), file("${sampName}_Log.out"), file("${sampName}_Log.progress.out"), file("${sampName}_SJ.out.tab")  into ch_mappedBams
      
 
     module      starModule
@@ -81,13 +81,13 @@ process align_STAR {
 }
 
 process sort_BAM {
-   label 'fastqc'
+   label 'bwa'
 	
    input:
-     set sampName, file(bam), file(Log[1-4]) from ch_mappedBams
+     set sampName, file(bam), file(Log1), file(Log2), file(Log3), file(Log4) from ch_mappedBams
 
    output:
-      set sampName, file("${sampName}_sorted.bam"), file("${sampName}_sorted.bam.bai") into ch_outBAMSorted
+      set sampName, file("${sampName}_sorted.bam") into ch_outBAMSorted
    
    publishDir path: './raw_bam', mode: 'copy'
    
@@ -105,21 +105,21 @@ process sort_BAM {
 
 process picardMarkDup {
 	
-   label 'medium_6h'
+   label 'bwa'
 
    input:
      set sampName, file(bam) from ch_outBAMSorted
 
    output:
-     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.bam.bai"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups
-     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.bam.bai"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups2
-     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.bam.bai"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups3
-     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.bam.bai"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups4
-     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.bam.bai"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups5
-     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.bam.bai"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups6
-     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.bam.bai"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups7
-     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.bam.bai"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups8
-     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.bam.bai"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups9
+     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups
+     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups2
+     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups3
+     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups4
+     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups5
+     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups6
+     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups7
+     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups8
+     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into ch_outMdups9
 
    publishDir path: './bamFiles', mode: 'copy'
 
@@ -130,7 +130,6 @@ process picardMarkDup {
    picard MarkDuplicates \
        TMP_DIR=${sampName}_tmp \
        VALIDATION_STRINGENCY=LENIENT \
-       CREATE_INDEX=true \
        INPUT=${bam} \
        OUTPUT=${sampName}_sorted.mdups.bam \
        METRICS_FILE=${sampName}_sorted.mdups.metrics
@@ -280,107 +279,24 @@ process bedtools {
 	label 'medium_1h'
 	
 	input:
-	  set sampName, file(bam), file(bai) from ch_mappedBams4
+	  set sampName, file(bam), file(bai) from ch_outMdups7
 	  
 	output:
-	  set sampName, file("${sampName}.bedtools.coverage") into ch_coverageQC
+	  set sampName, file("${sampName}.bedGraph") into ch_coverageQC
 	  
-	publishDir path: './qc_out/bedtools', mode: 'copy'
+	publishDir path: './coverageFiles', mode: 'copy'
 	
     module      bedtoolsModule
     
     script:
     """
-    bedtools coverage -a ${target} \
-      -b ${bam} \
-      -hist > ${sampName}.bedtools.coverage
+    bedtools genomecov -bga \
+      -split \
+      -ibam ${bam} \
+      -g ${ref} > ${sampName}.bedGraph.tmp
+    LC_COLLATE=C  sort -k1,1 -k2,2n ${sampName}.bedGraph.tmp > ${sampName}.bedGraph
+    rm ${sampName}.bedGraph.tmp
     """
 	
 }
-
-process vardict {
-    
-    label 'vardict'
-    
-    input:
-      set sampName, file(bam), file(bai) from ch_mappedBams5
-	  
-    output:
-      set sampName, file("${sampName}.tsv") into ch_vcfMake
-	  
-    publishDir path: './raw_variants/', mode: 'copy'
-
-    script:
-    """
-    module purge
-    module load samtools
-    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
-    VarDict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} -th ${task.cpus} \
-      ${vardictAmp}  \
-      >  "${sampName}.tsv"
-    """
-}
-
-process makeVCF {
-    
-    label 'small_1'
-
-    input:
-        set sampName, file(tsv) from ch_vcfMake
-    output:
-        set sampName, file("${sampName}.vardict.vcf") into ch_vardict
-    
-    publishDir path: './vardict', mode: 'copy'
-
-    script:
-    """
-    module purge
-    module load R
-    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
-    cat ${tsv} | teststrandbias.R | \
-        var2vcf_valid.pl -N "${sampName}" \
-        -f ${AF_THR} -E > "${sampName}.vardict.vcf"
-    """
-}
-
-process sortVCFS {
-
-    label 'medium_1h'
-
-    input:
-        set sampName, file(vcf) from ch_vardict
-    output:
-        set sampName, file("${sampName}.sorted.vcf.gz") into ch_sortedVCF
-
-    publishDir path: './variants_raw_out', mode: 'copy'                                    
-    
-    module      bcftoolsModule                                               
-    module      bwaModule
-
-    script:
-    """
-    bcftools sort -o "${sampName}.sorted.vcf.gz" -O z ${vcf}
-    """
-}
-
-process indexVCFS {
-    
-    label 'small_1'
-    
-    input:
-        set sampName, file(vcf) from ch_sortedVCF
-    output:
-        set sampName, file(vcf), file("${sampName}.sorted.vcf.gz.tbi") into ch_indexedVCF
-
-    publishDir path: './variants_raw_out', mode: 'copy'                                    
-    
-    module      bcftoolsModule                                                
-    module      bwaModule
-
-    script:
-    """
-    bcftools index -f --tbi ${vcf} -o "${sampName}.sorted.vcf.gz.tbi"
-    """
-}
-
 
