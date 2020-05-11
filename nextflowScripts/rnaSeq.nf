@@ -286,11 +286,7 @@ process bedtools {
 	  set sampName, file(bam), file(bai) from ch_outMdups7
 	  
 	output:
-<<<<<<< HEAD
-	  set sampName, file("${sampName}.bedGraph") into ch_coverageQC
-=======
 	  set sampName, file("${sampName}.bedGraph") into ch_bigWig
->>>>>>> 11b67a1093f2c90826b1d6466c10f2cf55c682e9
 	  
 	publishDir path: './coverageFiles', mode: 'copy'
 	
@@ -299,7 +295,6 @@ process bedtools {
     script:
     """
     bedtools genomecov -bga \
-<<<<<<< HEAD
       -split \
       -ibam ${bam} \
       -g ${ref} > ${sampName}.bedGraph.tmp
@@ -309,13 +304,3 @@ process bedtools {
 	
 }
 
-=======
-       -split \
-       -ibam ${bam} \
-       -g ${ref} > ${sampName}.tmp
-    LC_COLLATE=C  sort -k1,1 -k2,2n ${sampName}.tmp > ${sampName}.bedGraph
-    rm ${sampName}.tmp
-    """
-	
-}
->>>>>>> 11b67a1093f2c90826b1d6466c10f2cf55c682e9
