@@ -84,11 +84,8 @@ process sort_BAM {
    label 'bwa'
 	
    input:
-<<<<<<< HEAD
+
      set sampName, file(bam), file(Log1), file(Log2), file(Log3), file(Log4) from ch_mappedBams
-=======
-     set sampName, file(bam), file(Log1), file(Log2, file(Log3), file(Log4) from ch_mappedBams
->>>>>>> 11b67a1093f2c90826b1d6466c10f2cf55c682e9
 
    output:
       set sampName, file("${sampName}_sorted.bam") into ch_outBAMSorted
