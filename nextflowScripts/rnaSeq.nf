@@ -84,7 +84,10 @@ process sort_BAM {
    label 'bwa'
 	
    input:
+<<<<<<< HEAD
 
+=======
+>>>>>>> fe9d24bf907381c43559a1ad6f703cdea7a4da3b
      set sampName, file(bam), file(Log1), file(Log2), file(Log3), file(Log4) from ch_mappedBams
 
    output:
@@ -311,24 +314,23 @@ process qualimap {
 	  set sampName, file(bam), file(bai) from ch_outMdups8
 	  
 	output:
-	  set sampName, file(*) into ch_outQualimap
+	  set sampName, file("${sampName}/*") into ch_outQualimap
 	  
-	publishDir path: './qc_out/qualimap', mode: 'copy'
+	publishDir path: './qc_out/qualimap/${sampName}', mode: 'copy'
     
     script:
     """
-    export PATH=$PATH:/home/nwong/bin/qualimap_v2.2.1
+    export PATH="$PATH:/home/nwong/bin/qualimap_v2.2.1"
     qualimap rnaseq -bam ${bam} \
        --paired \
        --sorted \
        -gtf ${genes} \
+       -outdir ${sampName} \
        -oc ${sampName}_counts.txt \
        --sequencing-protocol strand-specific-reverse \
-       --java-mem-size=6G
-    """
-	
+       --java-mem-size=16G
+    """	
 }
-
 
 process fc_ustrand {
 	
@@ -338,7 +340,7 @@ process fc_ustrand {
 	  set sampName, file(bam), file(bai) from ch_outMdups9.collect()
 	  
 	output:
-	  set sampName, file(*) into ch_outFeatureCounts
+	  set sampName, file("*.txt") into ch_outFeatureCounts1
 	  
 	publishDir path: './counts', mode: 'copy'
 	
@@ -364,7 +366,7 @@ process fc_strand {
 	  set sampName, file(bam), file(bai) from ch_outMdups10.collect()
 	  
 	output:
-	  set sampName, file(*) into ch_outFeatureCounts
+	  set sampName, file("*.txt") into ch_outFeatureCounts2
 	  
 	publishDir path: './counts', mode: 'copy'
 	
@@ -390,7 +392,7 @@ process fc_revStrand {
 	  set sampName, file(bam), file(bai) from ch_outMdups11.collect()
 	  
 	output:
-	  set sampName, file(*) into ch_outFeatureCounts
+	  set sampName, file("*.txt") into ch_outFeatureCounts3
 	  
 	publishDir path: './counts', mode: 'copy'
 	
@@ -405,5 +407,4 @@ process fc_revStrand {
        -o ReverseStrandedCounts.txt \
        ${bam}
     """
-	
 }
