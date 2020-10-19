@@ -11,16 +11,22 @@ inputDirectory = file('fastq')
 AF_THR          = 0.0025
 
 // Declare References 
-refBase        = "${refFolder}/genome"
+refBase        = "${refFolder}/referenceFiles"
 ref            = "${refBase}.fa"
-target         = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed"
-picardInsert   = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed.interval"
-picardAmplicon = "${refFolder}/chip_v2_amplicon_bed_amplicon_20200324.bed.interval"
-vardictAmp     = "${refFolder}/chip_v2_amplicon_bed_vardict_20200324.bed"
+
+/* Target regions commented out for future inclusion
+ *
+ * target         = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed"
+ * picardInsert   = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed.interval"
+ * picardAmplicon = "${refFolder}/chip_v2_amplicon_bed_amplicon_20200324.bed.interval"
+ * vardictAmp     = "${refFolder}/chip_v2_amplicon_bed_vardict_20200324.bed"
+ */
+
 
 // Tools
 picardModule   = 'picard/2.9.2'
 bwaModule      = 'bwa/0.7.17-gcc5'
+bowtieModule   = 'bowtie2/2.3.5'
 samtoolsModule = 'samtools/1.9-gcc5'
 bedtoolsModule = 'bedtools/2.27.1-gcc5'
 bcftoolsModule = 'bcftools/1.8'
@@ -96,233 +102,33 @@ process fastqc_skew {
    """
 }
 
-process align_bwa {
+process align_bismark {
 
-   label 'bwa'
+   label 'bwa_genomics_12'
 
    input:
      set sampName, file(fastqs) from ch_fastaToBwa
 
    output:
-     set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into (ch_mappedBams, ch_mappedBams2, ch_mappedBams3, ch_mappedBams4, ch_mappedBams5, ch_mappedBams6)
+     set sampName, file("${sampName}_bismark_bt2_pe.bam"), file("${sampName}._bismark_bt2_PE_report.html"), file("${sampName}._bismark_bt2_PE_report.txt") into (ch_mappedBams, ch_mappedBams2, ch_mappedBams3, ch_mappedBams4, ch_mappedBams5, ch_mappedBams6)
      
-   publishDir path: './out_bam', mode: 'copy'
+   publishDir path: './out_bismark', mode: 'copy'
 
-    module      bwaModule
+    module      bowtieModule
     module      samtoolsModule
 
    script:
    """
-   bwa mem -t ${task.cpus} -R "@RG\\tID:${sampName}\\tPU:${sampName}\\tSM:${sampName}\\tPL:ILLUMINA\\tLB:rhAmpSeq" \
-       $ref ${fastqs[0]} ${fastqs[1]} | samtools view -u -h -q 1 - \
-       | samtools sort -@ $task.cpus -o "${sampName}.sorted.bam"
-   samtools index "${sampName}.sorted.bam" "${sampName}.sorted.bam.bai"
+   /home/nwong/bin/Bismark_v0.19.0/bismark ${refBase}  \
+   -1 ${fastqs[0]} \
+   -2 ${fastqs[1]} \
+   -q \
+   -X 1000 \
+   --multicore 6 \
+   --un \
+   -o out_bismark \
+   --non_directional \
+   --score_min L,0,-0.6 
    """
 }
-
-process bam_stats {
-   label 'fastqc'
-	
-   input:
-     set sampName, file(bam), file(bai) from ch_mappedBams6
-
-   output:
-      set sampName, file("${sampName}.samtools.stats"), file("${sampName}.idxstats") into ch_outSAMStats
-   
-   publishDir path: '.qc_out/samtools', mode: 'copy'
-   
-    module		samtoolsModule
-    
-   script:
-   """
-   samtools stats -@ ${task.cpus} ${bam} > ${sampName}.samtools.stats
-   samtools idxstats ${bam} > ${sampName}.idxstats
-   """
-}
-
-process bam_qc1 {
-	
-   label 'medium_1h'
-
-   input:
-     set sampName, file(bam), file(bai) from ch_mappedBams
-
-   output:
-     set sampName, file("${sampName}_alignment_metrics.txt") into ch_outQC
-
-   publishDir path: './qc_out/picard', mode: 'copy'
-
-    module      picardModule
-    module      samtoolsModule
-    module      RModule
-
-   script:
-   """
-   picard CollectAlignmentSummaryMetrics   \
-     I="${bam}"  \
-     O="${sampName}_alignment_metrics.txt"  \
-     R="${ref}" 
-   """
-}
-
-process bam_qc2 {
-	
-   label 'medium_1h'
-
-   input:
-     set sampName, file(bam), file(bai) from ch_mappedBams2
-
-   output:
-     set sampName, file("${sampName}.mm*") into ch_outQC2
-
-   publishDir path: './qc_out/picard', mode: 'copy'
-
-    module      picardModule
-    module      samtoolsModule
-    module      RModule
-
-   script:
-   """
-   picard CollectMultipleMetrics \
-     I="${bam}"  \
-     O="${sampName}.mm"  \
-     R="${ref}" 
-   """
-}
-
-process bam_qc3 {
-	
-   label 'medium_1h'
-
-   input:
-     set sampName, file(bam), file(bai) from ch_mappedBams3
-
-   output:
-     set sampName, file("${sampName}_pcr_metrics.txt") into ch_outQC3
-
-   publishDir path: './qc_out/picard', mode: 'copy'
-
-    module      picardModule
-    module      samtoolsModule
-    module      RModule
-
-   script:
-   """
-   picard CollectTargetedPcrMetrics   \
-     I="${bam}"  \
-     O="${sampName}_pcr_metrics.txt"  \
-     R="${ref}" \
-     AMPLICON_INTERVALS="${picardAmplicon}" \
-     TARGET_INTERVALS="${picardAmplicon}"
-   """
-}
-
-process coverage_qc {
-	
-	label 'medium_1h'
-	
-	input:
-	  set sampName, file(bam), file(bai) from ch_mappedBams4
-	  
-	output:
-	  set sampName, file("${sampName}.bedtools.coverage") into ch_coverageQC
-	  
-	publishDir path: './qc_out/bedtools', mode: 'copy'
-	
-    module      bedtoolsModule
-    
-    script:
-    """
-    bedtools coverage -a ${target} \
-      -b ${bam} \
-      -hist > ${sampName}.bedtools.coverage
-    """
-	
-}
-
-process vardict {
-    
-    label 'vardict'
-    
-    input:
-      set sampName, file(bam), file(bai) from ch_mappedBams5
-	  
-    output:
-      set sampName, file("${sampName}.tsv") into ch_vcfMake
-	  
-    publishDir path: './raw_variants/', mode: 'copy'
-
-    script:
-    """
-    module purge
-    module load samtools
-    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
-    VarDict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} -th ${task.cpus} \
-      ${vardictAmp}  \
-      >  "${sampName}.tsv"
-    """
-}
-
-process makeVCF {
-    
-    label 'small_1'
-
-    input:
-        set sampName, file(tsv) from ch_vcfMake
-    output:
-        set sampName, file("${sampName}.vardict.vcf") into ch_vardict
-    
-    publishDir path: './vardict', mode: 'copy'
-
-    script:
-    """
-    module purge
-    module load R
-    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
-    cat ${tsv} | teststrandbias.R | \
-        var2vcf_valid.pl -N "${sampName}" \
-        -f ${AF_THR} -E > "${sampName}.vardict.vcf"
-    """
-}
-
-process sortVCFS {
-
-    label 'medium_1h'
-
-    input:
-        set sampName, file(vcf) from ch_vardict
-    output:
-        set sampName, file("${sampName}.sorted.vcf.gz") into ch_sortedVCF
-
-    publishDir path: './variants_raw_out', mode: 'copy'                                    
-    
-    module      bcftoolsModule                                               
-    module      bwaModule
-
-    script:
-    """
-    bcftools sort -o "${sampName}.sorted.vcf.gz" -O z ${vcf}
-    """
-}
-
-process indexVCFS {
-    
-    label 'small_1'
-    
-    input:
-        set sampName, file(vcf) from ch_sortedVCF
-    output:
-        set sampName, file(vcf), file("${sampName}.sorted.vcf.gz.tbi") into ch_indexedVCF
-
-    publishDir path: './variants_raw_out', mode: 'copy'                                    
-    
-    module      bcftoolsModule                                                
-    module      bwaModule
-
-    script:
-    """
-    bcftools index -f --tbi ${vcf} -o "${sampName}.sorted.vcf.gz.tbi"
-    """
-}
-
 
