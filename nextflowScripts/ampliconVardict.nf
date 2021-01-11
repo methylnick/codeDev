@@ -80,7 +80,7 @@ process fastqc_skew {
    label 'fastqc'
 
    input:
-     set sampName, file(fastqs) from ch_fastaToFastqc
+     set sampName, file(fq1), file(fq2) from ch_fastaToFastqc
 
    output:
      set sampName, file("*.zip"), file("*.html") into ch_outFastQC2
@@ -92,7 +92,7 @@ process fastqc_skew {
 
    script:
    """
-   fastqc -t ${task.cpus} ${fastqs[0]} ${fastqs[1]}
+   fastqc -t ${task.cpus} ${fq1} ${fq2}
    """
 }
 
@@ -101,7 +101,7 @@ process align_bwa {
    label 'bwa'
 
    input:
-     set sampName, file(fastqs) from ch_fastaToBwa
+     set sampName, file(fq1), file(fq2) from ch_fastaToBwa
 
    output:
      set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into (ch_mappedBams, ch_mappedBams2, ch_mappedBams3, ch_mappedBams4, ch_mappedBams5, ch_mappedBams6)
@@ -114,7 +114,7 @@ process align_bwa {
    script:
    """
    bwa mem -t ${task.cpus} -R "@RG\\tID:${sampName}\\tPU:${sampName}\\tSM:${sampName}\\tPL:ILLUMINA\\tLB:rhAmpSeq" \
-       $ref ${fastqs[0]} ${fastqs[1]} | samtools view -u -h -q 1 - \
+       $ref ${fq1} ${fq2} | samtools view -u -h -q 1 - \
        | samtools sort -@ $task.cpus -o "${sampName}.sorted.bam"
    samtools index "${sampName}.sorted.bam" "${sampName}.sorted.bam.bai"
    """
@@ -129,7 +129,7 @@ process bam_stats {
    output:
       set sampName, file("${sampName}.samtools.stats"), file("${sampName}.idxstats") into ch_outSAMStats
    
-   publishDir path: '.qc_out/samtools', mode: 'copy'
+   publishDir path: './qc_out/samtools', mode: 'copy'
    
     module		samtoolsModule
     
