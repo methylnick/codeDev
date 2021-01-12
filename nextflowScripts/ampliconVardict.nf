@@ -19,6 +19,7 @@ target         = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed"
 picardInsert   = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed.interval"
 picardAmplicon = "${refFolder}/chip_v2_amplicon_bed_amplicon_20200324.bed.interval"
 vardictAmp     = "${refFolder}/chip_v2_amplicon_bed_vardict_20200324.bed"
+loyVardictAmp  = "${refFolder}/chip_v2_loy_amplicon_bed_vardict_20210112.bed"
 
 // Tools
 picardModule   = 'picard/2.9.2'
@@ -349,7 +350,7 @@ process loy_vardict {
     module load samtools
     export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
     VarDict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} -th ${task.cpus} \
-      ${vardictAmp}  \
+      ${loyVardictAmp}  \
       >  "${sampName}.tsv"
     """
 }
