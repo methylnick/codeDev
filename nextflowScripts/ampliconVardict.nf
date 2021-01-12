@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
 /*
- * Another attempt at a nextflow script 2020-01-18
+ * 2021-01-11 Working up and testing the nf script for production
  * This is a test and dev script so it is going straight to the short queue
  */
 
@@ -29,10 +29,10 @@ fastqcModule         = 'fastqc/0.11.7'
 skewerModule   = 'skewer/20170212'
 
 // Create channel stream
-Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
+Channel.fromFilePairs("fastq/*_R{1,2}.fastq.gz")
   .set{ ch_fastaIn }
   
-Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
+Channel.fromFilePairs("fastq/*_R{1,2}.fastq.gz")
   .set{ ch_fastQC }
 
 process fastqc {
@@ -57,14 +57,13 @@ process fastqc {
 }
 
 process skewer {
-   label 'bwa'   
+   label 'fastqc'   
 
    input:
 	 set sampName, file(rawfqs) from ch_fastaIn
    
    output:
-     set sampName, file("*-trimmed-pair1.fastq.gz"), file("*-trimmed-pair2.fastq.gz") into (ch_fastaToBwa, ch_fastaToFastqc)
-     set sampName, file("*-trimmed-pair1.fastq.gz"), file("*-trimmed-pair2.fastq.gz"), file("*-trimmed.log") into ch_skewEnd
+     set sampName, file("${sampName}-trimmed-pair1.fastq.gz"), file("${sampName}-trimmed-pair2.fastq.gz") into (ch_fastaToBwa, ch_fastaToFastqc)
      
    publishDir path: './fastq/trimmed', mode: 'copy'
      module skewerModule
@@ -80,11 +79,10 @@ process fastqc_skew {
    label 'fastqc'
 
    input:
-     set sampName, file(fastqs) from ch_fastaToFastqc
+     set sampName, file(fq1), file(fq2) from ch_fastaToFastqc
 
    output:
      set sampName, file("*.zip"), file("*.html") into ch_outFastQC2
-
 
    publishDir path: './qc_out/fastqc_trimmed', mode: 'copy'
 
@@ -92,16 +90,16 @@ process fastqc_skew {
 
    script:
    """
-   fastqc -t ${task.cpus} ${fastqs[0]} ${fastqs[1]}
+   fastqc -t ${task.cpus} ${fq1} ${fq2}
    """
 }
 
 process align_bwa {
 
-   label 'bwa'
+   label 'bwa_genomics'
 
    input:
-     set sampName, file(fastqs) from ch_fastaToBwa
+     set sampName, file(fq1), file(fq2) from ch_fastaToBwa
 
    output:
      set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into (ch_mappedBams, ch_mappedBams2, ch_mappedBams3, ch_mappedBams4, ch_mappedBams5, ch_mappedBams6)
@@ -114,8 +112,8 @@ process align_bwa {
    script:
    """
    bwa mem -t ${task.cpus} -R "@RG\\tID:${sampName}\\tPU:${sampName}\\tSM:${sampName}\\tPL:ILLUMINA\\tLB:rhAmpSeq" \
-       $ref ${fastqs[0]} ${fastqs[1]} | samtools view -u -h -q 1 - \
-       | samtools sort -@ $task.cpus -o "${sampName}.sorted.bam"
+       $ref ${fq1} ${fq2} | samtools view -u -h -q 1 - \
+       | samtools sort -@ ${task.cpus} -o "${sampName}.sorted.bam"
    samtools index "${sampName}.sorted.bam" "${sampName}.sorted.bam.bai"
    """
 }
@@ -129,7 +127,7 @@ process bam_stats {
    output:
       set sampName, file("${sampName}.samtools.stats"), file("${sampName}.idxstats") into ch_outSAMStats
    
-   publishDir path: '.qc_out/samtools', mode: 'copy'
+   publishDir path: './qc_out/samtools', mode: 'copy'
    
     module		samtoolsModule
     
@@ -142,7 +140,7 @@ process bam_stats {
 
 process bam_qc1 {
 	
-   label 'medium_1h'
+   label 'genomics'
 
    input:
      set sampName, file(bam), file(bai) from ch_mappedBams
@@ -167,7 +165,7 @@ process bam_qc1 {
 
 process bam_qc2 {
 	
-   label 'medium_1h'
+   label 'genomics'
 
    input:
      set sampName, file(bam), file(bai) from ch_mappedBams2
@@ -192,7 +190,7 @@ process bam_qc2 {
 
 process bam_qc3 {
 	
-   label 'medium_1h'
+   label 'genomics'
 
    input:
      set sampName, file(bam), file(bai) from ch_mappedBams3
@@ -219,7 +217,7 @@ process bam_qc3 {
 
 process coverage_qc {
 	
-	label 'medium_1h'
+	label 'genomics'
 	
 	input:
 	  set sampName, file(bam), file(bai) from ch_mappedBams4
@@ -265,7 +263,7 @@ process vardict {
 
 process makeVCF {
     
-    label 'small_1'
+    label 'small'
 
     input:
         set sampName, file(tsv) from ch_vcfMake
@@ -274,54 +272,16 @@ process makeVCF {
     
     publishDir path: './vardict', mode: 'copy'
 
+    module      RModule
+
     script:
     """
     module purge
-    module load R
+    module load R/3.6.0-mkl
     export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
     cat ${tsv} | teststrandbias.R | \
         var2vcf_valid.pl -N "${sampName}" \
         -f ${AF_THR} -E > "${sampName}.vardict.vcf"
-    """
-}
-
-process sortVCFS {
-
-    label 'medium_1h'
-
-    input:
-        set sampName, file(vcf) from ch_vardict
-    output:
-        set sampName, file("${sampName}.sorted.vcf.gz") into ch_sortedVCF
-
-    publishDir path: './variants_raw_out', mode: 'copy'                                    
-    
-    module      bcftoolsModule                                               
-    module      bwaModule
-
-    script:
-    """
-    bcftools sort -o "${sampName}.sorted.vcf.gz" -O z ${vcf}
-    """
-}
-
-process indexVCFS {
-    
-    label 'small_1'
-    
-    input:
-        set sampName, file(vcf) from ch_sortedVCF
-    output:
-        set sampName, file(vcf), file("${sampName}.sorted.vcf.gz.tbi") into ch_indexedVCF
-
-    publishDir path: './variants_raw_out', mode: 'copy'                                    
-    
-    module      bcftoolsModule                                                
-    module      bwaModule
-
-    script:
-    """
-    bcftools index -f --tbi ${vcf} -o "${sampName}.sorted.vcf.gz.tbi"
     """
 }
 
