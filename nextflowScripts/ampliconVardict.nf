@@ -1,8 +1,9 @@
 #!/usr/bin/env nextflow
 
 /*
- * 2021-01-11 Working up and testing the nf script for production
+ * 2021-01-12 Working up and testing the nf script for production
  * This is a test and dev script so it is going straight to the short queue
+ * Include AMELX loss of Y processing and vardict calling 
  */
 
 // Declare Inputs
@@ -13,6 +14,7 @@ AF_THR          = 0.0025
 // Declare References 
 refBase        = "${refFolder}/genome"
 ref            = "${refBase}.fa"
+loyRefBase     = "${refFolder}/loy/hg19_chrX.fa.gz"
 target         = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed"
 picardInsert   = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed.interval"
 picardAmplicon = "${refFolder}/chip_v2_amplicon_bed_amplicon_20200324.bed.interval"
@@ -63,9 +65,9 @@ process skewer {
 	 set sampName, file(rawfqs) from ch_fastaIn
    
    output:
-     set sampName, file("${sampName}-trimmed-pair1.fastq.gz"), file("${sampName}-trimmed-pair2.fastq.gz") into (ch_fastaToBwa, ch_fastaToFastqc)
+     set sampName, file("${sampName}-trimmed-pair1.fastq.gz"), file("${sampName}-trimmed-pair2.fastq.gz") into (ch_fastaToBwa, ch_fastaToFastqc, ch_loyBwa)
      
-   publishDir path: './fastq/trimmed', mode: 'copy'
+   publishDir path: './fastq_trimmed', mode: 'copy'
      module skewerModule
    
    script:
@@ -104,7 +106,7 @@ process align_bwa {
    output:
      set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into (ch_mappedBams, ch_mappedBams2, ch_mappedBams3, ch_mappedBams4, ch_mappedBams5, ch_mappedBams6)
      
-   publishDir path: './out_bam', mode: 'copy'
+   publishDir path: './chip/out_bam', mode: 'copy'
 
     module      bwaModule
     module      samtoolsModule
@@ -116,6 +118,52 @@ process align_bwa {
        | samtools sort -@ ${task.cpus} -o "${sampName}.sorted.bam"
    samtools index "${sampName}.sorted.bam" "${sampName}.sorted.bam.bai"
    """
+}
+
+process loy_bwa {
+
+   label 'bwa_genomics'
+
+   input:
+     set sampName, file(fq1), file(fq2) from ch_loyBwa
+
+   output:
+     set sampName, file("${sampName}.bam") into (ch_loyBams)
+
+   publishDir path: './loy/out_bam', mode: 'copy'
+
+    module      bwaModule
+    module      samtoolsModule
+
+   script:
+   """
+   bwa mem -t ${task.cpus} -R "@RG\\tID:${sampName}\\tPU:${sampName}\\tSM:${sampName}\\tPL:ILLUMINA\\tLB:rhAmpSeq" \
+       ${loyRefBase} ${fq1} ${fq2} | samtools view -u -h -q 1 - \
+       | samtools sort -@ ${task.cpus} -o "${sampName}.bam"
+   """
+}
+
+
+process loy_bam {
+
+   label 'genomics'
+
+   input:
+     set sampName, file(bam) from ch_loyBams
+
+   output:
+     set sampName, file("${sampName}_filtered.bam"), file("${sampName}_filtered.bam.bai") into (ch_loyVardict)
+
+   publishDir path: './loy/out_bam', mode: 'copy'
+
+    module      samtoolsModule
+
+   shell:
+   '''
+    samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>= 100 && $9<=151) || ($9<=-100 && $9>=-151)' | \
+    samtools view -b > ${sampName}_filtered.bam
+    samtools index ${sampName}_filtered.bam
+   '''
 }
 
 process bam_stats {
@@ -248,7 +296,7 @@ process vardict {
     output:
       set sampName, file("${sampName}.tsv") into ch_vcfMake
 	  
-    publishDir path: './raw_variants/', mode: 'copy'
+    publishDir path: './chip/raw_variants/', mode: 'copy'
 
     script:
     """
@@ -270,9 +318,7 @@ process makeVCF {
     output:
         set sampName, file("${sampName}.vardict.vcf") into ch_vardict
     
-    publishDir path: './vardict', mode: 'copy'
-
-    module      RModule
+    publishDir path: './chip/vardict', mode: 'copy'
 
     script:
     """
@@ -285,4 +331,47 @@ process makeVCF {
     """
 }
 
+process loy_vardict {
 
+    label 'loy_vardict'
+
+    input:
+      set sampName, file(bam), file(bai) from ch_loyVardict
+
+    output:
+      set sampName, file("${sampName}.tsv") into ch_loyVcf
+
+    publishDir path: './loy/raw_variants/', mode: 'copy'
+
+    script:
+    """
+    module purge
+    module load samtools
+    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
+    VarDict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} -th ${task.cpus} \
+      ${vardictAmp}  \
+      >  "${sampName}.tsv"
+    """
+}
+
+process loymakeVCF {
+
+    label 'small'
+
+    input:
+        set sampName, file(tsv) from ch_loyVcf
+    output:
+        set sampName, file("${sampName}.vardict.vcf") into ch_loyDone
+
+    publishDir path: './loy/vardict', mode: 'copy'
+
+    script:
+    """
+    module purge
+    module load R/3.6.0-mkl
+    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
+    cat ${tsv} | teststrandbias.R | \
+        var2vcf_valid.pl -N "${sampName}" \
+        -f ${AF_THR} -E > "${sampName}.vardict.vcf"
+    """
+}
