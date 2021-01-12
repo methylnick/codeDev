@@ -162,8 +162,8 @@ process loy_bam {
    shell:
    '''
     samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>= 100 && $9<=151) || ($9<=-100 && $9>=-151)' | \
-    samtools view -b > ${sampName}_filtered.bam
-    samtools index ${sampName}_filtered.bam
+    samtools view -b > !{sampName}_filtered.bam
+    samtools index !{sampName}_filtered.bam
    '''
 }
 
@@ -312,7 +312,7 @@ process vardict {
 
 process makeVCF {
     
-    label 'small'
+    label 'vardict_small'
 
     input:
         set sampName, file(tsv) from ch_vcfMake
@@ -320,6 +320,8 @@ process makeVCF {
         set sampName, file("${sampName}.vardict.vcf") into ch_vardict
     
     publishDir path: './chip/vardict', mode: 'copy'
+
+    module RModule
 
     script:
     """
@@ -334,7 +336,7 @@ process makeVCF {
 
 process loy_vardict {
 
-    label 'loy_vardict'
+    label 'vardict'
 
     input:
       set sampName, file(bam), file(bai) from ch_loyVardict
@@ -357,7 +359,7 @@ process loy_vardict {
 
 process loymakeVCF {
 
-    label 'small'
+    label 'vardict_small'
 
     input:
         set sampName, file(tsv) from ch_loyVcf
@@ -365,6 +367,8 @@ process loymakeVCF {
         set sampName, file("${sampName}.vardict.vcf") into ch_loyDone
 
     publishDir path: './loy/vardict', mode: 'copy'
+
+    module RModule
 
     script:
     """
