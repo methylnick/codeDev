@@ -4,6 +4,8 @@
  * 2021-01-12 Working up and testing the nf script for production
  * This is a test and dev script so it is going straight to the short queue
  * Include AMELX loss of Y processing and vardict calling 
+ * BAM filter employed to extract alignments most likely to be associated with
+ * assay proper. Vardict calling the insertion deployed to call Loss of Y
  */
 
 // Declare Inputs
@@ -19,7 +21,7 @@ target         = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed"
 picardInsert   = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed.interval"
 picardAmplicon = "${refFolder}/chip_v2_amplicon_bed_amplicon_20200324.bed.interval"
 vardictAmp     = "${refFolder}/chip_v2_amplicon_bed_vardict_20200324.bed"
-loyVardictAmp  = "${refFolder}/chip_v2_loy_amplicon_bed_vardict_20210112.bed"
+loyVardictAmp  = "${refFolder}/chip_v2_loy_amplicon_bed_vardict_20210113.bed"
 
 // Tools
 picardModule   = 'picard/2.9.2'
@@ -161,8 +163,16 @@ process loy_bam {
 
    shell:
    '''
-    samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>= 100 && $9<=151) || ($9<=-100 && $9>=-151)' | \
-    samtools view -b > !{sampName}_filtered.bam
+    samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>=103 && $9<=105) || ($9<=-103 && $9>=-105)' | \
+       samtools view -b > !{sampNamej}_104.bam
+    samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>=132 && $9<=134) || ($9<=-132 && $9>=-134)' | \
+       samtools view -b > !{sampName}_133.bam
+    samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>=127 && $9<=129) || ($9<=-127 && $9>=-129)' | \
+       samtools view -b > !{sampName}_128.bam
+    samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>=144 && $9<=145) || ($9<=-144 && $9>=-145)' | \
+       samtools view -b > !{sampName}_144.bam
+    samtools merge -f -h !{sampName}_104.bam !{sampName}_filtered.bam !{sampName}_104.bam \
+       !{sampName}_133.bam !{sampName}_128.bam !{sampName}_144.bam
     samtools index !{sampName}_filtered.bam
    '''
 }
