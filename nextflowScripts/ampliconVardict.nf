@@ -164,7 +164,7 @@ process loy_bam {
    shell:
    '''
     samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>=103 && $9<=105) || ($9<=-103 && $9>=-105)' | \
-       samtools view -b > !{sampNamej}_104.bam
+       samtools view -b > !{sampName}_104.bam
     samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>=132 && $9<=134) || ($9<=-132 && $9>=-134)' | \
        samtools view -b > !{sampName}_133.bam
     samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>=127 && $9<=129) || ($9<=-127 && $9>=-129)' | \
