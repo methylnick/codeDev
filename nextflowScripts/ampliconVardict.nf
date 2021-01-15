@@ -362,7 +362,7 @@ process loy_vardict {
     module load samtools
     export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
     VarDict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} -th ${task.cpus} \
-      ${loyVardictAmp}  \
+      -c 1 -S 2 -E 3 -g 4 ${loyVardictAmp}  \
       >  "${sampName}.tsv"
     """
 }
