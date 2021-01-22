@@ -32,6 +32,7 @@ bcftoolsModule = 'bcftools/1.8'
 RModule        = 'R/3.6.0-mkl'
 fastqcModule         = 'fastqc/0.11.7'
 skewerModule   = 'skewer/20170212'
+singularityModule = 'singularity/3.7.1'
 
 // Create channel stream
 Channel.fromFilePairs("fastq/*_R{1,2}.fastq.gz")
@@ -390,3 +391,28 @@ process loymakeVCF {
         -f ${AF_THR} -E > "${sampName}.vardict.vcf"
     """
 }
+
+process vep {
+
+    label 'vardict_small'
+
+    input:
+        set sampName, file(vardict) from ch_vardict
+    output:
+        set sampName, file("${sampName}.vep.vcf") into ch_VEPDone
+
+    publishDir path: './chip/vep', mode: 'copy'
+
+    module singularityModule
+
+    script:
+    """
+    singularity exec ${refFolder}/ensembl-vep_v102.347f9ed.sif \
+        vep -i ${vardict} \
+            -o ${sampName}.vep.vcf \
+            --everything \
+            --fork ${task.cpus} \
+            -offline
+    """
+}
+
