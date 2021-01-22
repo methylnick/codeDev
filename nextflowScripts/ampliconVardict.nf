@@ -412,6 +412,7 @@ process vep {
             -o ${sampName}.vep.vcf \
             --everything \
             --fork ${task.cpus} \
+             --dir_cache ${refFolder}/vep/homo_sapiens \
             -offline
     """
 }
