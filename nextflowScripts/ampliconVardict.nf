@@ -394,25 +394,22 @@ process loymakeVCF {
 
 process vep {
 
-    label 'vardict_small'
+    containerOptions "-B ${refFolder}/vep:/opt/vep/.vep"
 
     input:
         set sampName, file(vardict) from ch_vardict
     output:
-        set sampName, file("${sampName}.vep.vcf") into ch_VEPDone
+        set sampName, file("${sampName}.vep.vcf"), file("${sampName}.vep.html") into ch_VEPDone
 
     publishDir path: './chip/vep', mode: 'copy'
 
-    module singularityModule
-
     script:
     """
-    singularity exec ${refFolder}/ensembl-vep_v102.347f9ed.sif \
         vep -i ${vardict} \
             -o ${sampName}.vep.vcf \
             --everything \
             --fork ${task.cpus} \
-             --dir_cache ${refFolder}/vep/homo_sapiens \
+            --dir_cache /opt/vep/.vep \
             -offline
     """
 }
