@@ -132,7 +132,7 @@ process loy_bwa {
      set sampName, file(fq1), file(fq2) from ch_loyBwa
 
    output:
-     set sampName, file("${sampName}.bam") into (ch_loyBams)
+     set sampName, file("${sampName}.bam") into (ch_loyBams, ch_loyBams2)
 
    publishDir path: './loy/out_bam', mode: 'copy'
 
@@ -150,7 +150,7 @@ process loy_bwa {
 
 process loy_bam {
 
-   label 'genomics'
+   label 'genomics_qc'
 
    input:
      set sampName, file(bam) from ch_loyBams
@@ -178,6 +178,28 @@ process loy_bam {
    '''
 }
 
+process loy_bam2 {
+
+   label 'genomics_qc'
+
+   input:
+     set sampName, file(bam) from ch_loyBams2
+
+   output:
+     set sampName, file("${sampName}_filtered.bam"), file("${sampName}_filtered.bam.bai") into (ch_loyVardict2)
+
+   publishDir path: './loy/out_bam_133', mode: 'copy'
+
+    module      samtoolsModule
+
+   shell:
+   '''
+    samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>=132 && $9<=134) || ($9<=-132 && $9>=-134)' | \
+       samtools view -b > !{sampName}_filtered.bam
+    samtools index !{sampName}_filtered.bam
+   '''
+}
+
 process bam_stats {
    label 'fastqc'
 	
@@ -200,7 +222,7 @@ process bam_stats {
 
 process bam_qc1 {
 	
-   label 'genomics'
+   label 'genomics_qc'
 
    input:
      set sampName, file(bam), file(bai) from ch_mappedBams
@@ -225,7 +247,7 @@ process bam_qc1 {
 
 process bam_qc2 {
 	
-   label 'genomics'
+   label 'genomics_qc'
 
    input:
      set sampName, file(bam), file(bai) from ch_mappedBams2
@@ -250,7 +272,7 @@ process bam_qc2 {
 
 process bam_qc3 {
 	
-   label 'genomics'
+   label 'genomics_qc'
 
    input:
      set sampName, file(bam), file(bai) from ch_mappedBams3
@@ -277,7 +299,7 @@ process bam_qc3 {
 
 process coverage_qc {
 	
-	label 'genomics'
+	label 'genomics_qc'
 	
 	input:
 	  set sampName, file(bam), file(bai) from ch_mappedBams4
@@ -300,7 +322,7 @@ process coverage_qc {
 
 process vardict {
     
-    label 'vardict'
+    label 'vardict_loy'
     
     input:
       set sampName, file(bam), file(bai) from ch_mappedBams5
@@ -323,7 +345,7 @@ process vardict {
 
 process makeVCF {
     
-    label 'vardict_small'
+    label 'vardict_loy'
 
     input:
         set sampName, file(tsv) from ch_vcfMake
@@ -347,7 +369,7 @@ process makeVCF {
 
 process loy_vardict {
 
-    label 'vardict'
+    label 'vardict_loy'
 
     input:
       set sampName, file(bam), file(bai) from ch_loyVardict
@@ -368,9 +390,32 @@ process loy_vardict {
     """
 }
 
+process loy_vardict2 {
+
+    label 'vardict_loy'
+
+    input:
+      set sampName, file(bam), file(bai) from ch_loyVardict2
+
+    output:
+      set sampName, file("${sampName}.tsv") into ch_loyVcf2
+
+    publishDir path: './loy/raw_variants_133', mode: 'copy'
+
+    script:
+    """
+    module purge
+    module load samtools
+    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
+    VarDict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} -th ${task.cpus} \
+      -c 1 -S 2 -E 3 -g 4 ${loyVardictAmp}  \
+      >  "${sampName}.tsv"
+    """
+}
+
 process loymakeVCF {
 
-    label 'vardict_small'
+    label 'vardict_loy'
 
     input:
         set sampName, file(tsv) from ch_loyVcf
@@ -378,6 +423,30 @@ process loymakeVCF {
         set sampName, file("${sampName}.vardict.vcf") into ch_loyDone
 
     publishDir path: './loy/vardict', mode: 'copy'
+
+    module RModule
+
+    script:
+    """
+    module purge
+    module load R/3.6.0-mkl
+    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
+    cat ${tsv} | teststrandbias.R | \
+        var2vcf_valid.pl -N "${sampName}" \
+        -f ${AF_THR} -E > "${sampName}.vardict.vcf"
+    """
+}
+
+process loymakeVCF2 {
+
+    label 'vardict_loy'
+
+    input:
+        set sampName, file(tsv) from ch_loyVcf2
+    output:
+        set sampName, file("${sampName}.vardict.vcf") into ch_loyDone2
+
+    publishDir path: './loy/vardict_133', mode: 'copy'
 
     module RModule
 
