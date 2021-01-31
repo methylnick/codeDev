@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Run this script on bio server if the nextflow fails
+export PATH=${PATH}:~/bin/VarDict-1.7.0/bin/:
+AF_THR='0.0025'
+ref='/home/nick-wong/projects/david.curtis/refFiles/genome.fa'
+vardictAmp=/home/nick-wong/projects/david.curtis/refFiles/chip_v2_amplicon_bed_vardict_20200324.bed
+for i in `ls out_bam/*.bam`
+do
+echo Found ${i}
+j=`echo $i | sed 's:out_bam/::g' | sed 's:.bam::g'`
+echo Basename for the file to be processed is ${j}
+echo Running Vardict ...
+VarDict -G ${ref} -f ${AF_THR} -N ${j} -b ${i} -th 8 ${vardictAmp} > vardict/${j}.tsv
+cat vardict/${j}.tsv | teststrandbias.R | var2vcf_valid.pl -N ${j} -f ${AF_THR} -E > vardict/${j}.vardict.vcf
+done
