@@ -195,7 +195,10 @@ process loy_bam2 {
    shell:
    '''
     samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>=132 && $9<=134) || ($9<=-132 && $9>=-134)' | \
-       samtools view -b > !{sampName}_filtered.bam
+       samtools view -b > !{sampName}_133.bam
+    samtools view -h !{bam} | awk 'substr($0,1,1)=="@" || ($9>=127 && $9<=129) || ($9<=-127 && $9>=-129)' | \
+       samtools view -b > !{sampName}_128.bam
+    samtools merge -f -h !{sampName}_133.bam !{sampName}_filtered.bam !{sampName}_133.bam !{sampName}_128.bam
     samtools index !{sampName}_filtered.bam
    '''
 }
@@ -322,7 +325,7 @@ process coverage_qc {
 
 process vardict {
     
-    label 'vardict_loy'
+    label 'vardict_comp'
     
     input:
       set sampName, file(bam), file(bai) from ch_mappedBams5
@@ -458,28 +461,6 @@ process loymakeVCF2 {
     cat ${tsv} | teststrandbias.R | \
         var2vcf_valid.pl -N "${sampName}" \
         -f ${AF_THR} -E > "${sampName}.vardict.vcf"
-    """
-}
-
-process vep {
-
-    containerOptions "-B ${refFolder}/vep:/opt/vep/.vep"
-
-    input:
-        set sampName, file(vardict) from ch_vardict
-    output:
-        set sampName, file("${sampName}.vep.vcf"), file("${sampName}.vep.html") into ch_VEPDone
-
-    publishDir path: './chip/vep', mode: 'copy'
-
-    script:
-    """
-        vep -i ${vardict} \
-            -o ${sampName}.vep.vcf \
-            --everything \
-            --fork ${task.cpus} \
-            --dir_cache /opt/vep/.vep \
-            -offline
     """
 }
 
