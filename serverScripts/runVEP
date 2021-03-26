@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#To be run on bio3 as I have installed VEP-100 there. 
+#Here is the code to run it. 
+
+source ~/.bashrc
+
+for i in `ls *.vcf`
+ do
+   echo "Running VEP on ${i} ..."
+   j=`echo $i | sed 's:.sorted.vardict.vcf::g'`
+   vep --cache --force_overwrite --stats_text --vcf -i ${i} -o ${j}_vep.vcf --everything --port 3337
+   echo "Written Output to ${j}_vep.vcf"
+ done
