@@ -34,10 +34,9 @@ process vep {
     """
     vep -i ${vardict} \
         -o ${vardict.getSimpleName()}.vep.vcf \
-        --assembly 102_GRCh37 \
         --everything \
         --fork ${task.cpus} \
-        --dir_cache /opt/vep/.vep \
-        -offline
+        --dir /opt/vep/.vep \
+        --offline
     """
 }
