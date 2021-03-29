@@ -35,10 +35,10 @@ skewerModule   = 'skewer/20170212'
 singularityModule = 'singularity/3.7.1'
 
 // Create channel stream
-Channel.fromFilePairs("fastq/*_R{1,2}.fastq.gz")
+Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
   .set{ ch_fastaIn }
   
-Channel.fromFilePairs("fastq/*_R{1,2}.fastq.gz")
+Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
   .set{ ch_fastQC }
 
 process fastqc {
@@ -363,10 +363,35 @@ process makeVCF {
     """
     module purge
     module load R/3.6.0-mkl
-    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
-    cat ${tsv} | teststrandbias.R | \
-        var2vcf_valid.pl -N "${sampName}" \
+    cat ${tsv} | /home/nwong/bin/VarDict-1.7.0/bin/teststrandbias.R | \
+        /home/nwong/bin/VarDict-1.7.0/bin/var2vcf_valid.pl -N "${sampName}" \
         -f ${AF_THR} -E > "${sampName}.vardict.vcf"
+    """
+}
+
+process vep {
+
+    label 'vep'
+
+    containerOptions "-B ${refFolder}/vep:/opt/vep/.vep"
+
+    input:
+        set sampName, file(vardict) from ch_vardict
+    output:
+        set sampName, file("${sampName}.vep*") into ch_VEPDone
+    
+    module singularityModule
+
+    publishDir path: './chip/vep', mode: 'copy'
+
+    script:
+    """
+    vep -i ${vardict} \
+        -o ${sampName}.vep.vcf \
+        --everything \
+        --fork ${task.cpus} \
+        --dir /opt/vep/.vep \
+        --offline
     """
 }
 
@@ -433,9 +458,8 @@ process loymakeVCF {
     """
     module purge
     module load R/3.6.0-mkl
-    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
-    cat ${tsv} | teststrandbias.R | \
-        var2vcf_valid.pl -N "${sampName}" \
+    cat ${tsv} | /home/nwong/bin/VarDict-1.7.0/bin/teststrandbias.R | \
+        /home/nwong/bin/VarDict-1.7.0/bin/var2vcf_valid.pl -N "${sampName}" \
         -f ${AF_THR} -E > "${sampName}.vardict.vcf"
     """
 }
@@ -457,9 +481,8 @@ process loymakeVCF2 {
     """
     module purge
     module load R/3.6.0-mkl
-    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
-    cat ${tsv} | teststrandbias.R | \
-        var2vcf_valid.pl -N "${sampName}" \
+    cat ${tsv} | /home/nwong/bin/VarDict-1.7.0/bin/teststrandbias.R | \
+        /home/nwong/bin/VarDict-1.7.0/bin/var2vcf_valid.pl -N "${sampName}" \
         -f ${AF_THR} -E > "${sampName}.vardict.vcf"
     """
 }
