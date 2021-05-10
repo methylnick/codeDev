@@ -7,7 +7,7 @@
 
 #merge read 1, write to a file in mergedFastq directory
 
-mkdir mergedFastq
+mkdir -p mergedFastq
 
 for i in `find . -name "*L001*R1*"`
   do
@@ -27,5 +27,5 @@ for i in `find . -name "*L001*R2*"`
     l=`echo $k | sed 's:L003:L004:g'`
     m=`basename $i _L001_R2_001.fastq.gz`
     echo $m
-    cat $i $j $k $l > fastq/${m}.R2.fastq.gz
+    cat $i $j $k $l > mergedFastq/${m}.R2.fastq.gz
   done
