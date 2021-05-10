@@ -1,11 +1,13 @@
 #!/usr/bin/env nextflow
 
 /*
- * 2021-01-12 Working up and testing the nf script for production
+ * 2021-03-31 Working up and testing the nf script for production
  * This is a test and dev script so it is going straight to the short queue
  * Include AMELX loss of Y processing and vardict calling 
  * BAM filter employed to extract alignments most likely to be associated with
- * assay proper. Vardict calling the insertion deployed to call Loss of Y
+ * assay proper. Vardict calling the insertion deployed to call Loss of Y.
+ * also now runs VEP on the samples properly with singularity container and
+ * stops when samples/files with no variants called (an empty .tsv file) results
  */
 
 // Declare Inputs
@@ -35,10 +37,10 @@ skewerModule   = 'skewer/20170212'
 singularityModule = 'singularity/3.7.1'
 
 // Create channel stream
-Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
+Channel.fromFilePairs("project/fastqs/*_R{1,2}_001.fastq.gz")
   .set{ ch_fastaIn }
   
-Channel.fromFilePairs("fastq/*_R{1,2}_001.fastq.gz")
+Channel.fromFilePairs("project/fastqs/*_R{1,2}_001.fastq.gz")
   .set{ ch_fastQC }
 
 process fastqc {
@@ -351,7 +353,7 @@ process makeVCF {
     label 'vardict_loy'
 
     input:
-        set sampName, file(tsv) from ch_vcfMake
+        set sampName, file(tsv) from ch_vcfMake.filter{ sampName, file -> !file.isEmpty() }
     output:
         set sampName, file("${sampName}.vardict.vcf") into ch_vardict
     
@@ -446,7 +448,7 @@ process loymakeVCF {
     label 'vardict_loy'
 
     input:
-        set sampName, file(tsv) from ch_loyVcf
+        set sampName, file(tsv) from ch_loyVcf.filter{ sampName, file -> !file.isEmpty() }
     output:
         set sampName, file("${sampName}.vardict.vcf") into ch_loyDone
 
@@ -469,7 +471,7 @@ process loymakeVCF2 {
     label 'vardict_loy'
 
     input:
-        set sampName, file(tsv) from ch_loyVcf2
+        set sampName, file(tsv) from ch_loyVcf2.filter{ sampName, file -> !file.isEmpty() }
     output:
         set sampName, file("${sampName}.vardict.vcf") into ch_loyDone2
 
