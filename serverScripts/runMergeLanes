@@ -1,20 +1,22 @@
-#!/bin/bash
+#!/bin/bash -e
 
 #This script goes and finds all fastq files (from NextSeq run with files split into
 #lanes and merges them. 
 
 #assumes paired-end data
 
-#merge read 1, write to a file in fastq directory
+#merge read 1, write to a file in mergedFastq directory
+
+mkdir mergedFastq
 
 for i in `find . -name "*L001*R1*"`
   do
     j=`echo $i | sed 's:L001:L002:g'`
     k=`echo $j | sed 's:L002:L003:g'`
     l=`echo $k | sed 's:L003:L004:g'`
-    m=`echo $i | cut -c 7- | sed 's:_L001_R1_001.fastq.gz::g'`
+    m=`basename $i _L001_R1_001.fastq.gz`
     echo $m
-    cat $i $j $k $l > fastq/${m}.R1.fastq.gz
+    cat $i $j $k $l > mergedFastq/${m}.R1.fastq.gz
   done
 
 #merge read two, write this file to fastq directory
@@ -23,7 +25,7 @@ for i in `find . -name "*L001*R2*"`
     j=`echo $i | sed 's:L001:L002:g'`
     k=`echo $j | sed 's:L002:L003:g'`
     l=`echo $k | sed 's:L003:L004:g'`
-    m=`echo $i | cut -c 7- | sed 's:_L001_R2_001.fastq.gz::g'`
+    m=`basename $i _L001_R2_001.fastq.gz`
     echo $m
     cat $i $j $k $l > fastq/${m}.R2.fastq.gz
   done
