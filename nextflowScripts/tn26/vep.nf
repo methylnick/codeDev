@@ -30,6 +30,8 @@ process vep {
 
     publishDir path: './vep', mode: 'copy'
 
+    module singularityModule
+
     script:
     """
     vep -i ${vardict} \
