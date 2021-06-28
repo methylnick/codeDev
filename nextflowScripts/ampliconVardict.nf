@@ -24,6 +24,7 @@ picardInsert   = "${refFolder}/chip_v2_amplicon_bed_target_20200324.bed.interval
 picardAmplicon = "${refFolder}/chip_v2_amplicon_bed_amplicon_20200324.bed.interval"
 vardictAmp     = "${refFolder}/chip_v2_amplicon_bed_vardict_20200324.bed"
 loyVardictAmp  = "${refFolder}/chip_v2_loy_amplicon_bed_vardict_20210113.bed"
+sidVardictAmp  = "${refFolder}/sid_v2_amplicon_bed_vardict_20210628.bed.intervals.bed"
 
 // Tools
 picardModule   = 'picard/2.9.2'
@@ -110,7 +111,7 @@ process align_bwa {
      set sampName, file(fq1), file(fq2) from ch_fastaToBwa
 
    output:
-     set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into (ch_mappedBams, ch_mappedBams2, ch_mappedBams3, ch_mappedBams4, ch_mappedBams5, ch_mappedBams6)
+     set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into (ch_mappedBams, ch_mappedBams2, ch_mappedBams3, ch_mappedBams4, ch_mappedBams5, ch_mappedBams6, ch_mappedBams7)
      
    publishDir path: './chip/out_bam', mode: 'copy'
 
@@ -327,7 +328,7 @@ process coverage_qc {
 
 process vardict {
     
-    label 'vardict_comp'
+    label 'vardict_genomics'
     
     input:
       set sampName, file(bam), file(bai) from ch_mappedBams5
@@ -341,10 +342,36 @@ process vardict {
     """
     module purge
     module load samtools
-    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
+    export PATH=/home/nwong/bin/VarDict-1.8.0/bin:$PATH
     VarDict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} -th ${task.cpus} \
       ${vardictAmp}  \
       >  "${sampName}.tsv"
+    """
+}
+
+process gatk {
+    
+    label 'vardict_genomics'
+    
+    input:
+      set sampName, file(bam), file(bai) from ch_mappedBams7
+	  
+    output:
+      set sampName, file("${sampName}.g.vcf.gz") into ch_gatkOut
+	  
+    publishDir path: './sampID/gvcfs/', mode: 'copy'
+
+    script:
+    """
+    module purge
+    module load samtools
+    export PATH=/home/nwong/bin/gatk-4.2.0.0:$PATH
+    gatk HaplotypeCaller  \
+     -R ${ref} \
+     -L ${sidVardictAmp} \
+     -I ${bam} \
+     -O ${sampName}.g.vcf.gz \
+     -ERC GVCF
     """
 }
 
@@ -365,8 +392,8 @@ process makeVCF {
     """
     module purge
     module load R/3.6.0-mkl
-    cat ${tsv} | /home/nwong/bin/VarDict-1.7.0/bin/teststrandbias.R | \
-        /home/nwong/bin/VarDict-1.7.0/bin/var2vcf_valid.pl -N "${sampName}" \
+    cat ${tsv} | /home/nwong/bin/VarDict-1.8.0/bin/teststrandbias.R | \
+        /home/nwong/bin/VarDict-1.8.0/bin/var2vcf_valid.pl -N "${sampName}" \
         -f ${AF_THR} -E > "${sampName}.vardict.vcf"
     """
 }
@@ -413,7 +440,7 @@ process loy_vardict {
     """
     module purge
     module load samtools
-    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
+    export PATH=/home/nwong/bin/VarDict-1.8.0/bin:$PATH
     VarDict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} -th ${task.cpus} \
       -c 1 -S 2 -E 3 -g 4 ${loyVardictAmp}  \
       >  "${sampName}.tsv"
@@ -436,7 +463,7 @@ process loy_vardict2 {
     """
     module purge
     module load samtools
-    export PATH=/home/nwong/bin/VarDict-1.7.0/bin:$PATH
+    export PATH=/home/nwong/bin/VarDict-1.8.0/bin:$PATH
     VarDict -G ${ref} -f ${AF_THR} -N ${sampName} -b ${bam} -th ${task.cpus} \
       -c 1 -S 2 -E 3 -g 4 ${loyVardictAmp}  \
       >  "${sampName}.tsv"
@@ -460,7 +487,7 @@ process loymakeVCF {
     """
     module purge
     module load R/3.6.0-mkl
-    cat ${tsv} | /home/nwong/bin/VarDict-1.7.0/bin/teststrandbias.R | \
+    cat ${tsv} | /home/nwong/bin/VarDict-1.8.0/bin/teststrandbias.R | \
         /home/nwong/bin/VarDict-1.7.0/bin/var2vcf_valid.pl -N "${sampName}" \
         -f ${AF_THR} -E > "${sampName}.vardict.vcf"
     """
@@ -483,7 +510,7 @@ process loymakeVCF2 {
     """
     module purge
     module load R/3.6.0-mkl
-    cat ${tsv} | /home/nwong/bin/VarDict-1.7.0/bin/teststrandbias.R | \
+    cat ${tsv} | /home/nwong/bin/VarDict-1.8.0/bin/teststrandbias.R | \
         /home/nwong/bin/VarDict-1.7.0/bin/var2vcf_valid.pl -N "${sampName}" \
         -f ${AF_THR} -E > "${sampName}.vardict.vcf"
     """
