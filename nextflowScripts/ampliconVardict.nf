@@ -357,7 +357,7 @@ process gatk {
       set sampName, file(bam), file(bai) from ch_mappedBams7
 	  
     output:
-      set sampName, file("${sampName}.g.vcf.gz") into ch_gatkOut
+      set sampName, file("${sampName}.g.vcf.gz"), file("${sampName}.g.vcf.gz.tbi") into ch_gatkOut
 	  
     publishDir path: './sampID/gvcfs/', mode: 'copy'
 
@@ -372,6 +372,30 @@ process gatk {
      -I ${bam} \
      -O ${sampName}.g.vcf.gz \
      -ERC GVCF
+    """
+}
+
+process gatk_gt {
+    
+    label 'vardict_genomics'
+    
+    input:
+      set sampName, file(vcf), file(tbi) from ch_gatkOut
+	  
+    output:
+      set sampName, file("${sampName}.vcf.gz"), file("${sampName}.vcf.gz.tbi") into ch_gatkGTOut
+	  
+    publishDir path: './sampID/vcfs/', mode: 'copy'
+
+    script:
+    """
+    module purge
+    module load samtools
+    export PATH=/home/nwong/bin/gatk-4.2.0.0:$PATH
+    gatk GenotypeGVCFs  \
+     -R ${ref} \
+     -V ${vcf} \
+     -O ${sampName}.vcf.gz 
     """
 }
 
