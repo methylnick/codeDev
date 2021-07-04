@@ -441,6 +441,7 @@ process vep {
     """
     vep -i ${vardict} \
         -o ${sampName}.vep.vcf \
+        --fasta ${ref} \
         --everything \
         --fork ${task.cpus} \
         --dir /opt/vep/.vep \
