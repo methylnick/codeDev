@@ -50,7 +50,7 @@ process fastqc {
    errorStrategy 'ignore'
 
    input:
-     set sampName, file(fastqs) from ch_fastQC
+     set sampName, file(fastqs) from ch_fastQC.filter{ it.size() > 20 }
 
    output:
      set sampName, file("*.zip"), file("*.html") into ch_outFastQC
@@ -70,7 +70,7 @@ process skewer {
    label 'fastqc'   
 
    input:
-	 set sampName, file(rawfqs) from ch_fastaIn
+	 set sampName, file(rawfqs) from ch_fastaIn.filter{ it.size() > 20 }
    
    output:
      set sampName, file("${sampName}-trimmed-pair1.fastq.gz"), file("${sampName}-trimmed-pair2.fastq.gz") into (ch_fastaToBwa, ch_fastaToFastqc, ch_loyBwa)
@@ -428,7 +428,7 @@ process vep {
 
     label 'vep'
 
-    containerOptions "-B ${refFolder}/vep:/opt/vep/.vep -B ${refFolder}:${refFolder}"
+    containerOptions "-B ${refFolder}/vep:/opt/vep/.vep -B ${refFolder}:/refFolder"
 
     input:
         set sampName, file(vardict) from ch_vardict
@@ -443,7 +443,7 @@ process vep {
     """
     vep -i ${vardict} \
         -o ${sampName}.vep.vcf \
-        --fasta ${refFolder}/genome.fa \
+        --fasta /refFolder/genome.fa \
         --everything \
         --fork ${task.cpus} \
         --dir /opt/vep/.vep \
