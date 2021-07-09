@@ -38,15 +38,16 @@ skewerModule   = 'skewer/20170212'
 singularityModule = 'singularity/3.7.1'
 
 // Create channel stream
-Channel.fromFilePairs("project/fastqs/*_R{1,2}_001.fastq.gz")
+Channel.fromFilePairs("fastqs/*_R{1,2}_001.fastq.gz")
   .set{ ch_fastaIn }
   
-Channel.fromFilePairs("project/fastqs/*_R{1,2}_001.fastq.gz")
+Channel.fromFilePairs("fastqs/*_R{1,2}_001.fastq.gz")
   .set{ ch_fastQC }
 
 process fastqc {
    
    label 'fastqc'
+   errorStrategy 'ignore'
 
    input:
      set sampName, file(fastqs) from ch_fastQC
@@ -86,6 +87,7 @@ process skewer {
 process fastqc_skew {
 
    label 'fastqc'
+   errorStrategy 'ignore'
 
    input:
      set sampName, file(fq1), file(fq2) from ch_fastaToFastqc
