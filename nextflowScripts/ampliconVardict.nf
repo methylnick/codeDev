@@ -426,7 +426,7 @@ process vep {
 
     label 'vep'
 
-    containerOptions "-B ${refFolder}/vep:/opt/vep/.vep"
+    containerOptions "-B ${refFolder}/vep:/opt/vep/.vep -B ${refFolder}:${refFolder}"
 
     input:
         set sampName, file(vardict) from ch_vardict
@@ -441,7 +441,7 @@ process vep {
     """
     vep -i ${vardict} \
         -o ${sampName}.vep.vcf \
-        --fasta ${ref} \
+        --fasta ${refFolder}/genome.fa \
         --everything \
         --fork ${task.cpus} \
         --dir /opt/vep/.vep \
