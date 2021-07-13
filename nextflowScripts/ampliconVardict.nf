@@ -58,10 +58,9 @@ process fastqc {
 
    publishDir path: './qc_out/fastqc', mode: 'copy'
 
-    module      fastqcModule
-
    script:
    """
+   export PATH=/home/nwong/bin/FastQC:$PATH
    fastqc -t ${task.cpus} ${fastqs[0]} ${fastqs[1]}
    """
 }
@@ -97,10 +96,9 @@ process fastqc_skew {
 
    publishDir path: './qc_out/fastqc_trimmed', mode: 'copy'
 
-    module      fastqcModule
-
    script:
    """
+   export PATH=/home/nwong/bin/FastQC:$PATH
    fastqc -t ${task.cpus} ${fq1} ${fq2}
    """
 }
