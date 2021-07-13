@@ -50,7 +50,7 @@ process fastqc {
    errorStrategy 'ignore'
 
    input:
-     set sampName, file(fastqs) from ch_fastQC.filter{ it.size() > 20 }
+     set sampName, file(fastqs) from ch_fastQC
 
    output:
      set sampName, file("*.zip"), file("*.html") into ch_outFastQC
@@ -69,7 +69,7 @@ process skewer {
    label 'fastqc'   
 
    input:
-	 set sampName, file(rawfqs) from ch_fastaIn.filter{ it.size() > 20 }
+	 set sampName, file(rawfqs) from ch_fastaIn
    
    output:
      set sampName, file("${sampName}-trimmed-pair1.fastq.gz"), file("${sampName}-trimmed-pair2.fastq.gz") into (ch_fastaToBwa, ch_fastaToFastqc, ch_loyBwa)
