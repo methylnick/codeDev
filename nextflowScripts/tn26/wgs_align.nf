@@ -24,7 +24,10 @@ singularityModule = 'singularity/3.7.1'
 
 // Create channel stream
 Channel.fromFilePairs("fastqs/*_{1,2}.fastq.gz")
-  .set{ ch_fastaIn , ch_fastQC}
+  .set{ ch_fastaIn }
+
+  Channel.fromFilePairs("fastqs/*_{1,2}.fastq.gz")
+  .set{ ch_fastQC}
 
 process fastqc {
    
