@@ -7,8 +7,6 @@
 
 // Declare Inputs
 refFolder = file("/scratch/tn26/nick.wong/refFiles/hg38")
-inputDirectory = file('fastq')
-AF_THR          = 0.0025
 
 // Declare References 
 ref            = "${refFolder}/bwa_0.7.17-gcc5/hg38_ref_noAlt.fa"
@@ -56,7 +54,7 @@ process skewer {
 	 set sampName, file(rawfqs) from ch_fastaIn
    
    output:
-     set sampName, file("${sampName}-trimmed-pair1.fastq.gz"), file("${sampName}-trimmed-pair2.fastq.gz") into (ch_fastaToBwa, ch_fastaToFastqc, ch_loyBwa)
+     set sampName, file("${sampName}-trimmed-pair1.fastq.gz"), file("${sampName}-trimmed-pair2.fastq.gz") into (ch_fastaToBwa, ch_fastaToFastqc)
      
    publishDir path: './fastq_trimmed', mode: 'copy'
      module skewerModule
@@ -95,7 +93,7 @@ process align_bwa {
      set sampName, file(fq1), file(fq2) from ch_fastaToBwa
 
    output:
-     set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into (ch_mappedBams, ch_mappedBams2, ch_mappedBams3, ch_mappedBams4, ch_mappedBams5, ch_mappedBams6, ch_mappedBams7)
+     set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into (ch_mappedBams, ch_mappedBams2, ch_mappedBams3)
      
    publishDir path: './chip/out_bam', mode: 'copy'
 
@@ -116,7 +114,7 @@ process bam_stats {
    label 'fastqc'
 	
    input:
-     set sampName, file(bam), file(bai) from ch_mappedBams6
+     set sampName, file(bam), file(bai) from ch_mappedBams3
 
    output:
       set sampName, file("${sampName}.samtools.stats"), file("${sampName}.idxstats") into ch_outSAMStats
