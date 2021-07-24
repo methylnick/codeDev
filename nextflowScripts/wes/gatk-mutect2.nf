@@ -80,10 +80,10 @@ process tumNorm {
     label 'vardict_genomics'
     
     input:
-      set sampName, file(bam), file(bai) from ch_outMdups
+      set sampName, file(bam), file(bai) from ch_outMdups2
 	  
     output:
-      set sampName, file("${sampName}.vcf.gz") into ch_gatkOut
+      set sampName, file("${sampName}.vcf.gz") into ch_gatkOut2
 	  
     publishDir path: './tumourNormal/', mode: 'copy'
 
