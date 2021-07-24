@@ -28,7 +28,7 @@ Channel.fromPath("out_bam/*.sorted.bam")
 
 process picardMarkDup {
 	
-   label 'bwa'
+   label 'vardict_genomics'
 
    input:
      set file(bam) from ch_bamIn
