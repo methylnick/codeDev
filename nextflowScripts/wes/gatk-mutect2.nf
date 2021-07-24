@@ -23,7 +23,7 @@ skewerModule   = 'skewer/20170212'
 singularityModule = 'singularity/3.7.1'
 
 // Create channel stream
-Channel.fromFile("out_bam/*.sorted.bam")
+Channel.fromPath("out_bam/*.sorted.bam")
   .set{ ch_bamIn }
 
 process picardMarkDup {
