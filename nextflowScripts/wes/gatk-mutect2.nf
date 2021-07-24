@@ -201,10 +201,10 @@ process picardMarkDup {
    script:
    """
    picard MarkDuplicates \
-       TMP_DIR=$${sampName}_tmp \
+       TMP_DIR=${sampName}_tmp \
        VALIDATION_STRINGENCY=LENIENT \
        INPUT=${bam} \
-       OUTPUT=$${sampName}_sorted.mdups.bam \
+       OUTPUT=${sampName}_sorted.mdups.bam \
        METRICS_FILE=${sampName}_sorted.mdups.metrics
    """
 }
