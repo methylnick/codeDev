@@ -31,10 +31,10 @@ process picardMarkDup {
    label 'bwa'
 
    input:
-     set sampName, file(bam) from ch_bamIn
+     set file(bam) from ch_bamIn
 
    output:
-     set sampName, file("${sampName}_sorted.mdups.bam"), file("${sampName}_sorted.mdups.metrics") into (ch_outMdups, ch_outMdups2)
+     set sampName, file("${bam.getSimpleName()}_sorted.mdups.bam"), file("${bam.getSimpleName()}_sorted.mdups.metrics") into (ch_outMdups, ch_outMdups2)
 
    publishDir path: './bamFiles', mode: 'copy'
 
@@ -43,11 +43,11 @@ process picardMarkDup {
    script:
    """
    picard MarkDuplicates \
-       TMP_DIR=${sampName}_tmp \
+       TMP_DIR=${bam.getSimpleName()}_tmp \
        VALIDATION_STRINGENCY=LENIENT \
        INPUT=${bam} \
-       OUTPUT=${sampName}_sorted.mdups.bam \
-       METRICS_FILE=${sampName}_sorted.mdups.metrics
+       OUTPUT=${bam.getSimpleName()}_sorted.mdups.bam \
+       METRICS_FILE=${bam.getSimpleName()}_sorted.mdups.metrics
    """
 }
 
@@ -56,10 +56,10 @@ process mutect2 {
     label 'vardict_genomics'
     
     input:
-      set sampName, file(bam), file(bai) from ch_outMdups
+      set file(bam), file(bai) from ch_outMdups
 	  
     output:
-      set sampName, file("${sampName}.vcf.gz") into ch_gatkOut
+      set file("${bam.getSimpleName()}.vcf.gz") into ch_gatkOut
 	  
     publishDir path: './tumourOnly/', mode: 'copy'
 
@@ -71,7 +71,7 @@ process mutect2 {
     gatk Mutect2  \
      -R ${ref} \
      -I ${bam} \
-     -O ${sampName}.g.vcf.gz \
+     -O ${sbam.getSimpleName()}.vcf.gz \
     """
 }
 
@@ -80,10 +80,10 @@ process tumNorm {
     label 'vardict_genomics'
     
     input:
-      set sampName, file(bam), file(bai) from ch_outMdups2
+      set file(bam), file(bai) from ch_outMdups2
 	  
     output:
-      set sampName, file("${sampName}.vcf.gz") into ch_gatkOut2
+      set file("${bam.getSimpleName()}.vcf.gz") into ch_gatkOut2
 	  
     publishDir path: './tumourNormal/', mode: 'copy'
 
@@ -97,6 +97,6 @@ process tumNorm {
      -I ${bam} \
      -I  bamFiles/HFJ25DSX2_AGAGTCAA_sorted.mdups.bam \
      --germline-resource ${refFolder}/1000G_phase1.snps.high_confidence.hg38.vcf.gz \
-     -O ${sampName}.g.vcf.gz \
+     -O ${bam.getSimpleName()}.g.vcf.gz \
     """
 }
