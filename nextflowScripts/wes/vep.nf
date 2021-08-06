@@ -21,12 +21,16 @@ Channel.fromPath("*.vcf.gz")
   
 process vep {
 
+    label 'vep'
+
     containerOptions "-B ${refFolder}/vep_homo_sapiens:/opt/vep/.vep"
 
     input:
         file(vardict) from ch_vardict
     output:
         file("${vardict.getSimpleName()}.vep*") into ch_VEPDone
+
+    module singularityModule
 
     publishDir path: './vep', mode: 'copy'
 
