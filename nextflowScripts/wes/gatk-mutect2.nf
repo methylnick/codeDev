@@ -217,7 +217,7 @@ process mutect2 {
       set sampName, file(bam), file(bai) , file(metrics) from ch_outMdups
 	  
     output:
-      set sampName, file("${sampName}.vcf.gz") into ch_gatkOut
+      set sampName, file("${sampName}.vcf.gz"), file("${sampName}.vcf.gz.tbi"), file("${sampName}.vcf.gz.stats") into ch_gatkOut
 	  
     publishDir path: './tumourOnly/', mode: 'copy'
 
@@ -229,7 +229,31 @@ process mutect2 {
     gatk Mutect2  \
      -R ${ref} \
      -I ${bam} \
-     -O ${sampName}.vcf.gz \
+     -O ${sampName}.vcf.gz 
+    """
+}
+
+process filterMutect {
+    
+    label 'vardict_genomics'
+    
+    input:
+      set sampName, file(vcf), file(tbi) , file(stats) from ch_gatkOut
+	  
+    output:
+      set sampName, file("${sampName}_filtered.vcf.gz"), file("${sampName}_filtered.vcf.gz.tbi"), file("${sampName}_filtered.vcf.gz.filteringStats.tsv") into ch_filterOutOut
+	  
+    publishDir path: './tumourOnly/', mode: 'copy'
+
+    script:
+    """
+    module purge
+    module load samtools
+    export PATH=/home/nwong/bin/gatk-4.2.0.0:$PATH
+    gatk FilterMutectCalls  \
+     -R ${ref} \
+     -V ${vcf} \
+     -O ${sampName}_filtered.vcf.gz 
     """
 }
 
