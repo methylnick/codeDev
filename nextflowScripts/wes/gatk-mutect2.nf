@@ -265,7 +265,7 @@ process tumNorm {
       set sampName, file(bam), file(bai), file(metrics) from ch_outMdups2
 	  
     output:
-      set sampName, file("${sampName}.vcf.gz") into ch_gatkOut2
+      set sampName, file("${sampName}.vcf.gz"), file("${sampName}.vcf.gz.stats"), file("${sampName}.vcf.gz.tbi") into ch_gatkOut2
 	  
     publishDir path: './tumourNormal/', mode: 'copy'
 
@@ -277,8 +277,8 @@ process tumNorm {
     gatk Mutect2  \
      -R ${ref} \
      -I ${bam} \
-     -I  bamFiles/HFJ25DSX2_AGAGTCAA_sorted.mdups.bam \
+     -I  IR1_1_7_HFJ25DSX2_AGAGTCAA_L002_sorted.mdups.bam \
      --germline-resource ${refFolder}/1000G_phase1.snps.high_confidence.hg38.vcf.gz \
-     -O ${sampName}.g.vcf.gz \
+     -O ${sampName}.vcf.gz \
     """
 }
