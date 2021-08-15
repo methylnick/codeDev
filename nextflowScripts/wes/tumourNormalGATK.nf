@@ -40,7 +40,7 @@ process tumNorm {
      -R ${ref} \
      -I ${bam} \
      -I  IR1_1_7_HFJ25DSX2_AGAGTCAA_L002_sorted.mdups.bam \
-     --germline-resource ${refFolder}/1000G_phase1.snps.high_confidence.hg38.vcf.gz \
+     --germline-resource ${refFolder}/af-only-gnomad.hg38.vcf.gz \
      -O ${sampName}.vcf.gz \
     """
 }
