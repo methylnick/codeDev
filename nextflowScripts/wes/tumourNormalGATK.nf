@@ -16,18 +16,18 @@ ref            = "${refBase}.fa"
 singularityModule = 'singularity/3.7.1'
 
 // Create channel stream
-Channel.fromPath("bamFiles/*.bam")
-  .set{ ch_vcf }
+Channel.fromPath("/fs03/sg58/angela.pizzola/2021-07-21-WES/bamFiles/*.bam")
+  .set{ ch_bam }
   
 process tumNorm {
     
-    label 'vardict_genomics'
+    label 'vep'
     
     input:
-      set sampName, file(vcf) from ch_vcf
+      file(bam) from ch_bam
 	  
     output:
-      set sampName, file("${sampName}.vcf.gz"), file("${sampName}.vcf.gz.stats"), file("${sampName}.vcf.gz.tbi") into ch_gatkOut2
+      file("${bam.getSimpleName()}.vcf.gz"), file("${bam.getSimpleName()}.vcf.gz.stats"), file("${bam.getSimpleName()}.vcf.gz.tbi") into ch_gatkOut2
 	  
     publishDir path: './tumourNormal/', mode: 'copy'
 
@@ -39,8 +39,8 @@ process tumNorm {
     gatk Mutect2  \
      -R ${ref} \
      -I ${bam} \
-     -I  IR1_1_7_HFJ25DSX2_AGAGTCAA_L002_sorted.mdups.bam \
-     --germline-resource ${refFolder}/af-only-gnomad.hg38.vcf.gz \
-     -O ${sampName}.vcf.gz \
+     -I  /fs03/sg58/angela.pizzola/2021-07-21-WES/IR1_1_7_HFJ25DSX2_AGAGTCAA_L002_sorted.mdups.bam \
+     --germline-resource ${refFolder}/hg38/af-only-gnomad.hg38.vcf.gz \
+     -O ${bam.getSimpleName()}.vcf.gz \
     """
 }
