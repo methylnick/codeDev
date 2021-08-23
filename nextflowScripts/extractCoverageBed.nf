@@ -40,7 +40,7 @@ process coverage_qc {
 	output:
 	  file("${bam.getSimpleName()}.bedtools.coverage") into ch_coverageQC
 	  
-	publishDir path: './qc_out/bedtools', mode: 'copy'
+	publishDir path: './roi_coverage', mode: 'copy'
 	
     module      bedtoolsModule
     
