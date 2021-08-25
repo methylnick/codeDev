@@ -37,6 +37,7 @@ process vep {
         --everything \
         --fork ${task.cpus} \
         --dir /opt/vep/.vep \
-        --offline
+        --offline \
+        --vcf
     """
 }
