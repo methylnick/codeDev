@@ -31,7 +31,7 @@ process unTar {
 }
 
 
-process unTar {
+process gzip {
 
     label 'untar'
 
