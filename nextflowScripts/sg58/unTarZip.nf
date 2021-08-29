@@ -10,6 +10,7 @@
 // Declare References 
 
 // Tools
+pigzModule = "pigz/2.3.4"
 
 // Create channel stream
 Channel.fromPath("*/*.tar.gz")
@@ -33,7 +34,7 @@ process unTar {
 
 process gzip {
 
-    label 'untar'
+    label 'vardict_comp'
 
     input:
         tuple file(fq1), file(fq2) from ch_fastq
@@ -42,8 +43,11 @@ process gzip {
 
     publishDir path: './fastqs', mode: 'copy'
 
+    module pigzModule
+
     script:
     """
-    gzip ${fq1}
+    pigz -f -p ${task.cpus} ${fq1}
+    pigz -f -p ${task.cpus} ${fq2}
     """
 }
