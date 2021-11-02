@@ -18,12 +18,12 @@ baits          = "${refFolder}/hg38/agilentClinicalResearchExomeV2/S30409818_Pad
 singularityModule = 'singularity/3.7.1'
 
 // Create channel stream
-Channel.fromPath("/fs03/sg58/angela.pizzola/2021-07-21-WES/bamFiles/*.bam")
+Channel.fromPath("/home/nwong/sg58/2021-07-21-WES/bamFiles/*.bam")
   .set{ ch_bam }
   
 process tumNorm {
     
-    label 'vep'
+    label 'genomics_qc'
     
     input:
       file(bam) from ch_bam
@@ -31,7 +31,7 @@ process tumNorm {
     output:
       file("${bam.getSimpleName()}.HS_metrics.txt") into ch_gatkOut2
 	  
-    publishDir path: './tumourNormal/', mode: 'copy'
+    publishDir path: './qc_out', mode: 'copy'
 
     script:
     """
