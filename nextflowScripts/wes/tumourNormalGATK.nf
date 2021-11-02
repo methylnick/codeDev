@@ -27,7 +27,7 @@ process tumNorm {
       file(bam) from ch_bam
 	  
     output:
-      file("${bam.getSimpleName()}.vcf.gz"), file("${bam.getSimpleName()}.vcf.gz.stats"), file("${bam.getSimpleName()}.vcf.gz.tbi") into ch_gatkOut2
+      tuple file("${bam.getSimpleName()}.vcf.gz"), file("${bam.getSimpleName()}.vcf.gz.stats"), file("${bam.getSimpleName()}.vcf.gz.tbi") into ch_gatkOut2
 	  
     publishDir path: './tumourNormal/', mode: 'copy'
 
