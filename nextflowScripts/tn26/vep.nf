@@ -20,6 +20,8 @@ Channel.fromPath("*.vcf.gz")
   .set{ ch_vardict }
   
 process vep {
+     
+    label 'vep'
 
     containerOptions "-B ${refFolder}/vep:/opt/vep/.vep"
 
