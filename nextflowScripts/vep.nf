@@ -41,3 +41,30 @@ process vep {
         --vcf
     """
 }
+
+process maf {
+
+    label 'maf'
+
+    containerOptions "-B ${refFolder}:/refFiles"
+
+    input:
+        set sampName, file(vepInFile) from ch_VEPDone
+    output:
+        set sampName, file("${sampName}.maf"), file("${sampName}*.vcf")  into ch_MAFDone
+    
+    module singularityModule
+
+    publishDir path: './chip/maf', mode: 'copy'
+
+    script:
+    """
+    perl /opt/vep/src/ensembl-vep/vcf2maf-main/vcf2maf.pl \
+    --input-vcf ${vepInFile} \
+    --output-maf ${sampName}.maf \
+    --cache-version=102 \
+    --ref-fasta /refFiles/genome.fa \
+    --vep-path /opt/vep/src/ensembl-vep \
+    --vep-data /refFiles/vep
+    """
+}
