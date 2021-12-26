@@ -30,6 +30,8 @@ process vep {
     output:
         file("${vardict.getSimpleName()}.vep*") into ch_VEPDone
 
+    module singularityModule
+
     publishDir path: './chip/vep', mode: 'copy'
 
     script:
