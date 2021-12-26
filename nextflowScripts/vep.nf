@@ -21,6 +21,8 @@ Channel.fromPath("*.vcf")
   
 process vep {
 
+    label 'vep'
+
     containerOptions "-B ${refFolder}/vep:/opt/vep/.vep"
 
     input:
