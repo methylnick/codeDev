@@ -6,7 +6,7 @@
  */
 
 // Declare Inputs
-params.index = 'manifest.csv'
+params.index = '/scratch/rc78/angela.pizzola/2021-07-21-WES/bamFiles/bamsToSplit/manifest.csv'
 
 // Tools
 singularityModule = 'singularity/3.7.1'
@@ -15,7 +15,7 @@ singularityModule = 'singularity/3.7.1'
 Channel
     .fromPath(params.index)
     .splitCsv(header:true)
-    .map{ row-> tuple(row.chr, file(row.sampN), file(row.samp1), file(row.samp2), file(row.samp3), file(row.samp4), file(row.samp5)) }
+    .map{ row -> tuple(row.chr, file(row.norm), file(row.samp1), file(row.samp2), file(row.samp3), file(row.samp4), file(row.samp5)) }
     .set { samples_ch }
   
 process multisnv {
