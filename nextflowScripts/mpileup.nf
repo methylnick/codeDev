@@ -35,6 +35,7 @@ process mpileup {
       -l /scratch/ls25/nick.wong/refFiles/loi.bed \
       -f /scratch/ls25/nick.wong/refFiles/genome.fa \
       -o ${bams.getSimpleName()}.mpileup \
-      -d 0
+      -d 0 \
+      ${bams}
    """
 }
