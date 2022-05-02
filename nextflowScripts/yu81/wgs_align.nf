@@ -234,3 +234,32 @@ process gatk_gt {
      -O ${sampName}.vcf.gz 
     """
 }
+
+process vep {
+     
+    label 'vep'
+
+    containerOptions "-B ${vepFolder}/vep:/opt/vep/.vep"
+
+    input:
+        file(vardict) from ch_gatkGTOut
+    output:
+        file("${sampName}.vep*") into ch_VEPDone
+
+    publishDir path: './vep', mode: 'copy'
+
+    module singularityModule
+
+    script:
+    """
+    vep -i ${vardict} \
+        -o ${sampName}.vep.vcf \
+        --everything \
+        --fork ${task.cpus} \
+        --dir /opt/vep/.vep \
+        --offline \
+        --vcf \
+        --species aspergillus_fumigatus \
+        --cache_version 53
+    """
+}

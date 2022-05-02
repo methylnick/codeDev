@@ -1,0 +1,47 @@
+#!/bin/bash
+# Usage: sbatch slurm-serial-job-script
+# Author Nick Wong, Monash Bioinformatics Platform
+#     nick.wong@monash.edu
+
+# NOTE: To activate a SLURM option, remove the whitespace between the '#' and 'SBATCH'
+
+# To give your job a name, replace "MyJob" with an appropriate name
+#SBATCH --job-name=optitype
+
+
+# To set a project account for credit charging, 
+#SBATCH --account=df22
+
+
+# Request CPU resource for a serial job
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=8
+#SBATCH --profile=task
+
+# Memory usage (MB)
+#SBATCH --mem-per-cpu=4000
+
+# Set your minimum acceptable walltime, format: day-hours:minutes:seconds
+#SBATCH --time=0-4:00:00
+
+
+# To receive an email when job completes or fails
+#SBATCH --mail-user=nick.wong@monash.edu
+#SBATCH --mail-type=END
+#SBATCH --mail-type=FAIL
+
+#SBATCH --partition=genomics
+
+#SBATCH --qos=genomics
+
+# Command to run a serial job
+/scratch/rc78/angela.pizzola/hlahd.1.4.0/bin/hlahd.sh  \
+  -t 8 \
+  -f /scratch/rc78/angela.pizzola/hlahd.1.4.0/freq_data \
+  OPC_002_PBMC_HWGKYDSX2_ACACGACC_L004-trimmed-pair1.fastq \
+  OPC_002_PBMC_HWGKYDSX2_ACACGACC_L004-trimmed-pair2.fastq \
+  /scratch/rc78/angela.pizzola/hlahd.1.4.0/HLA_gene.split.3.32.0.txt \
+  /scratch/rc78/angela.pizzola/hlahd.1.4.0/dictionary \
+  OPC_002_PBMC \ 
+  out_hlahd
