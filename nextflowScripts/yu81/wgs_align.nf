@@ -96,7 +96,7 @@ process align_bwa {
      set sampName, file(fq1), file(fq2) from ch_fastaToBwa
 
    output:
-     set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into (ch_mappedBams, ch_mappedBams2, ch_mappedBams3)
+     set sampName, file("${sampName}.sorted.bam"), file("${sampName}.sorted.bam.bai") into (ch_mappedBams, ch_mappedBams2, ch_mappedBams3, ch_mappedBams4, ch_mappedBams5)
      
    publishDir path: './out_bam', mode: 'copy'
 
@@ -106,7 +106,7 @@ process align_bwa {
    script:
    """
    bwa mem -t ${task.cpus} -R "@RG\\tID:${sampName}\\tPU:${sampName}\\tSM:${sampName}\\tPL:ILLUMINA\\tLB:rhAmpSeq" \
-       $ref ${fq1} ${fq2} | samtools view -u -h -q 1 - \
+       ${ref} ${fq1} ${fq2} | samtools view -u -h -q 1 - \
        | samtools sort -@ ${task.cpus} -o "${sampName}.sorted.bam"
    samtools index "${sampName}.sorted.bam" "${sampName}.sorted.bam.bai"
    """
@@ -181,4 +181,56 @@ process bam_qc2 {
      O="${sampName}.mm"  \
      R="${ref}" 
    """
+}
+
+process gatk {
+    
+    label 'vardict_genomics'
+    
+    input:
+      set sampName, file(bam), file(bai) from ch_mappedBams4
+	  
+    output:
+      set sampName, file("${sampName}.g.vcf.gz"), file("${sampName}.g.vcf.gz.tbi") into ch_gatkOut
+	  
+    publishDir path: './gvcfs/', mode: 'copy'
+
+    script:
+    """
+    module purge
+    module load samtools
+    export PATH=/home/nwong/bin/gatk-4.2.0.0:$PATH
+    gatk HaplotypeCaller  \
+     -R ${ref} \
+     -I ${bam} \
+     -O ${sampName}.g.vcf.gz \
+     -ERC GVCF \
+     -ploidy 1 \
+     -stand-call-conf 20.0 \
+     --dont-use-soft-clipped-bases true
+    """
+}
+
+process gatk_gt {
+    
+    label 'vardict_genomics'
+    
+    input:
+      set sampName, file(vcf), file(tbi) from ch_gatkOut
+	  
+    output:
+      set sampName, file("${sampName}.vcf.gz"), file("${sampName}.vcf.gz.tbi") into ch_gatkGTOut
+	  
+    publishDir path: './vcfs/', mode: 'copy'
+
+    script:
+    """
+    module purge
+    module load samtools
+    export PATH=/home/nwong/bin/gatk-4.2.0.0:$PATH
+    gatk GenotypeGVCFs  \
+     -R ${ref} \
+     -V ${vcf} \
+     -O ${sampName}.vcf.gz 
+    """
 }
