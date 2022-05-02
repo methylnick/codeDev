@@ -7,9 +7,11 @@
 
 // Declare Inputs
 refFolder = file("/scratch/yu81/nick.wong/refFiles/ncbi-genomes-2022-04-27")
+vepFolder = file("/scratch/yu81/nick.wong/refFiles/VEP")
 
 // Declare References 
 ref            = "${refFolder}/GCA_000002655.1_ASM265v1_genomic.fna"
+
 
 // Tools
 picardModule   = 'picard/2.9.2'
