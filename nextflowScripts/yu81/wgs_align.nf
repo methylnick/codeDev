@@ -241,12 +241,12 @@ process vep {
      
     label 'vep'
 
-    containerOptions "-B ${vepFolder}/vep:/opt/vep/.vep"
+    containerOptions "-B ${vepFolder}:/opt/vep/.vep"
 
     input:
-        file(vardict) from ch_gatkGTOut
+        set sampName, file(vardict), file(tbi) from ch_gatkGTOut
     output:
-        file("${sampName}.vep*") into ch_VEPDone
+        set sampName, file("${sampName}.vep*") into ch_VEPDone
 
     publishDir path: './vep', mode: 'copy'
 
