@@ -8,6 +8,7 @@
 // Declare Inputs
 refFolder = file("/scratch/yu81/nick.wong/refFiles/ncbi-genomes-2022-04-27")
 vepFolder = file("/scratch/yu81/nick.wong/refFiles/VEP")
+mashFolder = file("/home/nwong/bin/mash-Linux64-v2.3")
 
 // Declare References 
 ref            = "${refFolder}/GCA_000002655.1_ASM265v1_genomic.fna"
@@ -59,7 +60,7 @@ process skewer {
 	 set sampName, file(rawfqs) from ch_fastaIn
    
    output:
-     set sampName, file("${sampName}-trimmed-pair1.fastq.gz"), file("${sampName}-trimmed-pair2.fastq.gz") into (ch_fastaToBwa, ch_fastaToFastqc)
+     set sampName, file("${sampName}-trimmed-pair1.fastq.gz"), file("${sampName}-trimmed-pair2.fastq.gz") into (ch_fastaToBwa, ch_fastaToFastqc, ch_fastqToMash, ch_fastqToMash2)
      
    publishDir path: './fastq_trimmed', mode: 'copy'
      module skewerModule
@@ -87,6 +88,44 @@ process fastqc_skew {
    """
    export PATH=/home/nwong/bin/FastQC:$PATH
    fastqc -t ${task.cpus} ${fq1} ${fq2}
+   """
+}
+
+process mash {
+
+   label 'bwa_genomics'
+
+   input:
+     set sampName, file(fq1), file(fq2) from ch_fastqToMash
+
+   output:
+     set sampName, file("${sampName}_R1.tab"), file("${sampName}_R2.tab") into ch_outMash
+
+   publishDir path: './qc_out/mash', mode: 'copy'
+
+   script:
+   """
+   ${mashFolder}/mash screen -w -p ${task.cpus} ${mashFolder}/refseq.genomes.k21s1000.msh ${fq1} | sort -gr - | head  > ${sampName}_R1.tab
+   ${mashFolder}/mash screen -w -p ${task.cpus} ${mashFolder}/refseq.genomes.k21s1000.msh ${fq2} | sort -gr - | head  > ${sampName}_R2.tab
+   """
+}
+
+process mash2 {
+
+   label 'bwa_genomics'
+
+   input:
+     set sampName, file(fq1), file(fq2) from ch_fastqToMash2
+
+   output:
+     set sampName, file("${sampName}_R1.tab"), file("${sampName}_R2.tab") into ch_outMash2
+
+   publishDir path: './qc_out/mash_ITD', mode: 'copy'
+
+   script:
+   """
+   ${mashFolder}/mash screen -w -p ${task.cpus} ${mashFolder}/Afum_cam_its.msh ${fq1} | sort -gr - | head  > ${sampName}_R1.tab
+   ${mashFolder}/mash screen -w -p ${task.cpus} ${mashFolder}/Afum_cam_its.msh ${fq2} | sort -gr - | head  > ${sampName}_R2.tab
    """
 }
 
@@ -241,12 +280,12 @@ process vep {
      
     label 'vep'
 
-    containerOptions "-B ${vepFolder}/vep:/opt/vep/.vep"
+    containerOptions "-B ${vepFolder}:/opt/vep/.vep"
 
     input:
-        file(vardict) from ch_gatkGTOut
+        set sampName, file(vardict), file(tbi) from ch_gatkGTOut
     output:
-        file("${sampName}.vep*") into ch_VEPDone
+        set sampName, file("${sampName}.vep*") into ch_VEPDone
 
     publishDir path: './vep', mode: 'copy'
 
