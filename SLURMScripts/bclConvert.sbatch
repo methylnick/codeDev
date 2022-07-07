@@ -36,11 +36,11 @@
 module load singularity
 
 
-BCLCONVERT=/home/nick-wong/bin/bcl-convert
+=/home/nick-wong/bin/bcl-convert
 OUTPUT=/home/nick-wong/projects/david.curtis/2021-06-21-ASPREE-SP-2.4-3.1/fastqs
 mkdir -p ${OUTPUT}/logs
 
-singularity exec --bind ${OUTPUT}/logs:/var/log/bcl-convert ${BCLCONVERT}/bcl-convert-3.6.3.sif bcl-convert \
+singularity exec --bind ${OUTPUT}/logs:/var/log/bcl-convert ${}/bcl-convert-3.6.3.sif bcl-convert \
   --sample-sheet /home/nick-wong/projects/david.curtis/2021-06-21-ASPREE-SP-2.4-3.1/20210618_AL_ASPREE_rhampseq_nvSPXPv15_sideB_120pM/Files/SampleSheet.csv \
   -f \
   --output-directory ${OUTPUT} \
