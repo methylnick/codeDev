@@ -10,7 +10,7 @@
 
 
 # To set a project account for credit charging, 
-#SBATCH --account=ls25
+#SBATCH --account=tn26
 
 
 # Request CPU resource for a serial job
@@ -36,12 +36,13 @@
 module load singularity
 
 
-=/home/nick-wong/bin/bcl-convert
-OUTPUT=/home/nick-wong/projects/david.curtis/2021-06-21-ASPREE-SP-2.4-3.1/fastqs
+BCLCONVERT=/home/nwong/bin/bcl-convert
+OUTPUT=/home/nwong/tn26_scratch/gemma.hartley/results
 mkdir -p ${OUTPUT}/logs
 
-singularity exec --bind ${OUTPUT}/logs:/var/log/bcl-convert ${}/bcl-convert-3.6.3.sif bcl-convert \
-  --sample-sheet /home/nick-wong/projects/david.curtis/2021-06-21-ASPREE-SP-2.4-3.1/20210618_AL_ASPREE_rhampseq_nvSPXPv15_sideB_120pM/Files/SampleSheet.csv \
+singularity exec --bind ${OUTPUT}:/var/log/bcl-convert --bind ${OUTPUT}:/results \
+  --bind /home/nwong/tn26_scratch/gemma.hartley/2022-01-28-runFiles/20220125_GH_LB_nvSPXPv15_sideB/Files:/input  ${BCLCONVERT}/bcl-convert-3.6.3.sif bcl-convert \
+  --sample-sheet /results/newSheet.csv \
   -f \
-  --output-directory ${OUTPUT} \
-  --bcl-input-directory /home/nick-wong/projects/david.curtis/2021-06-21-ASPREE-SP-2.4-3.1/20210618_AL_ASPREE_rhampseq_nvSPXPv15_sideB_120pM/Files
+  --output-directory /results \
+  --bcl-input-directory /input
