@@ -38,18 +38,18 @@ process bamtofastq {
    output:
     tuple file("${bam.getSimpleName()}_mapped.R1.fastq.gz"), file("${bam.getSimpleName()}_mapped.R2.fastq.gz") into ch_outFastQC
 
-   publishDir path: './fastqs', mode: 'copy'
+   publishDir path: 'fastqs', mode: 'copy'
 
    module samtoolsModule
    module bedtoolsModule
 
    script:
    """
-   samtools view -u -f 1 -F 12 ${bam} | \
-     samtools sort -@ ${task.cpus} -T ${bam.getSimpleName()} -n ${bam} | \
+   samtools view -h -f 1 -F 12 ${bam} | \
+     samtools sort -@ ${task.cpus} -T ${bam.getSimpleName()} -n - | \
      samtools fastq -@ ${task.cpus} -1 ${bam.getSimpleName()}_mapped.R1.fastq.gz \
      -2 ${bam.getSimpleName()}_mapped.R2.fastq.gz \
-     -0 /dev/null -s /dev/null -n
+     -0 /dev/null -s /dev/null -n -
    """
 }
 
@@ -63,18 +63,18 @@ process bamtounmapped {
    output:
     tuple file("${bam.getSimpleName()}_u_m.R1.fastq.gz"), file("${bam.getSimpleName()}_u_m.R2.fastq.gz") into ch_outFastQC2
 
-   publishDir path: './fastqs', mode: 'copy'
+   publishDir path: 'fastqs', mode: 'copy'
 
    module samtoolsModule
    module bedtoolsModule
 
    script:
    """
-   samtools view -u -f 4 -F 264 ${bam} | \
-     samtools sort -@ ${task.cpus} -T ${bam.getSimpleName()} -n ${bam} | \
+   samtools view -h -f 4 -F 264 ${bam} | \
+     samtools sort -@ ${task.cpus} -T ${bam.getSimpleName()} -n - | \
      samtools fastq -@ ${task.cpus} -1 ${bam.getSimpleName()}_u_m.R1.fastq.gz \
      -2 ${bam.getSimpleName()}_u_m.R2.fastq.gz \
-     -0 /dev/null -s /dev/null -n
+     -0 /dev/null -s /dev/null -n -
    """
 }
 
@@ -88,18 +88,18 @@ process bamtom_u {
    output:
     tuple file("${bam.getSimpleName()}_m_u.R1.fastq.gz"), file("${bam.getSimpleName()}_m_u.R2.fastq.gz") into ch_outFastQC3
 
-   publishDir path: './fastqs', mode: 'copy'
+   publishDir path: 'fastqs', mode: 'copy'
 
    module samtoolsModule
    module bedtoolsModule
 
    script:
    """
-   samtools view -u -f 8 -F 260 ${bam} | \
-     samtools sort -@ ${task.cpus} -T ${bam.getSimpleName()} -n ${bam} | \
+   samtools view -h -f 8 -F 260 ${bam} | \
+     samtools sort -@ ${task.cpus} -T ${bam.getSimpleName()} -n - | \
      samtools fastq -@ ${task.cpus} -1 ${bam.getSimpleName()}_m_u.R1.fastq.gz \
      -2 ${bam.getSimpleName()}_m_u.R2.fastq.gz \
-     -0 /dev/null -s /dev/null -n
+     -0 /dev/null -s /dev/null -n - 
    """
 }
 
@@ -113,17 +113,17 @@ process bamtou_u {
    output:
     tuple file("${bam.getSimpleName()}_u_u.R1.fastq.gz"), file("${bam.getSimpleName()}_u_u.R2.fastq.gz") into ch_outFastQC4
 
-   publishDir path: './fastqs', mode: 'copy'
+   publishDir path: 'fastqs', mode: 'copy'
 
    module samtoolsModule
    module bedtoolsModule
 
    script:
    """
-   samtools view -u -f 12 -F 256 ${bam} | \
-     samtools sort -@ ${task.cpus} -T ${bam.getSimpleName()} -n ${bam} | \
+   samtools view -h -f 12 -F 256 ${bam} | \
+     samtools sort -@ ${task.cpus} -T ${bam.getSimpleName()} -n - | \
      samtools fastq -@ ${task.cpus} -1 ${bam.getSimpleName()}_u_u.R1.fastq.gz \
      -2 ${bam.getSimpleName()}_u_u.R2.fastq.gz \
-     -0 /dev/null -s /dev/null -n
+     -0 /dev/null -s /dev/null -n - 
    """
 }
